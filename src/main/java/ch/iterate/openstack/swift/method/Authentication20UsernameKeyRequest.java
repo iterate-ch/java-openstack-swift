@@ -28,7 +28,7 @@ public class Authentication20UsernameKeyRequest extends HttpPost implements Auth
         JSONObject auth = new JSONObject();
         auth.put("apiKeyCredentials", passwordCredentials);
         if(StringUtils.isNotBlank(tenant)) {
-            auth.put("tenantId", tenant);
+            auth.put("tenantName", tenant);
         }
         JSONObject container = new JSONObject();
         container.put("auth", auth);

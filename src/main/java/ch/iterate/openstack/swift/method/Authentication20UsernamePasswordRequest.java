@@ -15,6 +15,16 @@ import java.net.URI;
 import ch.iterate.openstack.swift.Client;
 
 /**
+ * {
+ * "auth":{
+ * "passwordCredentials":{
+ * "username":"test_user",
+ * "password":"mypass"
+ * },
+ * "tenantName":"customer-x"
+ * }
+ * }
+ *
  * @version $Id:$
  */
 public class Authentication20UsernamePasswordRequest extends HttpPost implements AuthenticationRequest {
@@ -28,7 +38,7 @@ public class Authentication20UsernamePasswordRequest extends HttpPost implements
         JSONObject auth = new JSONObject();
         auth.put("passwordCredentials", passwordCredentials);
         if(StringUtils.isNotBlank(tenant)) {
-            auth.put("tenantId", tenant);
+            auth.put("tenantName", tenant);
         }
         JSONObject container = new JSONObject();
         container.put("auth", auth);
