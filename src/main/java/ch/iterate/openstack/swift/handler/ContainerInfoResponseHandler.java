@@ -25,9 +25,6 @@ import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.ContainerInfo;
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class ContainerInfoResponseHandler implements ResponseHandler<List<ContainerInfo>> {
     private static final Logger logger = Logger.getLogger(ContainerInfoResponseHandler.class);
 

@@ -18,9 +18,6 @@ import ch.iterate.openstack.swift.exception.NotFoundException;
 import ch.iterate.openstack.swift.model.Container;
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class ContainerResponseHandler implements ResponseHandler<List<Container>> {
 
     private Region region;

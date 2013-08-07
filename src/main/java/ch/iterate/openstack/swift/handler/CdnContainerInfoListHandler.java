@@ -23,9 +23,6 @@ import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.CDNContainer;
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class CdnContainerInfoListHandler implements ResponseHandler<List<CDNContainer>> {
     private static final Logger logger = Logger.getLogger(ContainerInfoResponseHandler.class);
 

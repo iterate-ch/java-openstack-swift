@@ -6,9 +6,6 @@ import java.util.Set;
 
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class AuthenticationResponse extends Response {
 
     private String authToken;

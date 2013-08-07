@@ -24,9 +24,6 @@ import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.exception.NotFoundException;
 import ch.iterate.openstack.swift.model.StorageObject;
 
-/**
- * @version $Id:$
- */
 public class ObjectResponseHandler implements ResponseHandler<List<StorageObject>> {
     private static final Logger logger = Logger.getLogger(ObjectResponseHandler.class);
 

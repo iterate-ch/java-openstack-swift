@@ -61,12 +61,12 @@ import ch.iterate.openstack.swift.model.CDNContainer;
 import ch.iterate.openstack.swift.model.Container;
 import ch.iterate.openstack.swift.model.ContainerInfo;
 import ch.iterate.openstack.swift.model.ContainerMetadata;
-import ch.iterate.openstack.swift.model.StorageObject;
 import ch.iterate.openstack.swift.model.ObjectMetadata;
 import ch.iterate.openstack.swift.model.Region;
+import ch.iterate.openstack.swift.model.StorageObject;
 
 /**
- * A openstack for Cloud Files.  Here follows a basic example of logging in, creating a container and an
+ * An OpenStack Swift client interface.  Here follows a basic example of logging in, creating a container and an
  * object, retrieving the object, and then deleting both the object and container.  For more examples,
  * see the code in com.iterate.openstack.cloudfiles.sample, which contains a series of examples.
  * <p/>
@@ -400,7 +400,7 @@ public class Client {
      * @throws AuthorizationException The openstack's login was invalid.
      */
     public List<StorageObject> listObjectsStartingWith(Region region, String container,
-                                                                                 String startsWith, String path, int limit, String marker) throws IOException {
+                                                       String startsWith, String path, int limit, String marker) throws IOException {
         return listObjectsStartingWith(region, container, startsWith, path, limit, marker, null);
     }
 

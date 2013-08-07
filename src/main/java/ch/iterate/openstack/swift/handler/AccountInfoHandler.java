@@ -14,9 +14,6 @@ import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.AccountInfo;
 
-/**
- * @version $Id:$
- */
 public class AccountInfoHandler implements ResponseHandler<AccountInfo> {
 
     public AccountInfo handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {

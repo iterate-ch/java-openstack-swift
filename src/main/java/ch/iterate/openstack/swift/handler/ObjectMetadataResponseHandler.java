@@ -16,9 +16,6 @@ import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.exception.NotFoundException;
 import ch.iterate.openstack.swift.model.ObjectMetadata;
 
-/**
- * @version $Id:$
- */
 public class ObjectMetadataResponseHandler extends MetadataResponseHandler implements ResponseHandler<ObjectMetadata> {
 
     public ObjectMetadata handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {

@@ -7,9 +7,6 @@ import java.net.URI;
 import ch.iterate.openstack.swift.Client;
 import ch.iterate.openstack.swift.Constants;
 
-/**
- * @version $Id:$
- */
 public class Authentication10UsernameKeyRequest extends HttpGet implements AuthenticationRequest {
 
     public Authentication10UsernameKeyRequest(final URI uri, final String username, final String key) {

@@ -16,9 +16,6 @@ import ch.iterate.openstack.swift.exception.ContainerNotFoundException;
 import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.ContainerMetadata;
 
-/**
- * @version $Id:$
- */
 public class ContainerMetadataResponseHandler extends MetadataResponseHandler implements ResponseHandler<ContainerMetadata> {
 
     public ContainerMetadata handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {

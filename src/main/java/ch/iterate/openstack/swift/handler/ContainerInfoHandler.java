@@ -16,9 +16,6 @@ import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.ContainerInfo;
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class ContainerInfoHandler implements ResponseHandler<ContainerInfo> {
 
     private Region region;

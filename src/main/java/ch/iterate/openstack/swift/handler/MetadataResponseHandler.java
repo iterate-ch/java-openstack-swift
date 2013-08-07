@@ -6,9 +6,6 @@ import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 
-/**
- * @version $Id:$
- */
 public abstract class MetadataResponseHandler {
 
 

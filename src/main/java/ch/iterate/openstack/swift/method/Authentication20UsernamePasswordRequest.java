@@ -24,8 +24,6 @@ import ch.iterate.openstack.swift.Client;
  * "tenantName":"customer-x"
  * }
  * }
- *
- * @version $Id:$
  */
 public class Authentication20UsernamePasswordRequest extends HttpPost implements AuthenticationRequest {
     private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class);

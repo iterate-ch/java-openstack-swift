@@ -14,9 +14,6 @@ import java.net.URI;
 
 import ch.iterate.openstack.swift.Client;
 
-/**
- * @version $Id:$
- */
 public class Authentication20AccessKeySecretKeyRequest extends HttpPost implements AuthenticationRequest {
     private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class);
 

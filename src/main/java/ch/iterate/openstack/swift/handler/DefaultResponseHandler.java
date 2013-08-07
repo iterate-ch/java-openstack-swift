@@ -13,9 +13,6 @@ import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.exception.NotFoundException;
 
-/**
- * @version $Id:$
- */
 public class DefaultResponseHandler implements ResponseHandler<Response> {
 
     public Response handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {

@@ -16,9 +16,6 @@ import ch.iterate.openstack.swift.exception.NotFoundException;
 import ch.iterate.openstack.swift.model.CDNContainer;
 import ch.iterate.openstack.swift.model.Region;
 
-/**
- * @version $Id:$
- */
 public class CdnContainerInfoHandler implements ResponseHandler<CDNContainer> {
 
     private Region region;

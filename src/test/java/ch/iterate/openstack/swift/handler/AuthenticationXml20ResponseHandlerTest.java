@@ -7,9 +7,6 @@ import org.junit.Test;
 
 import ch.iterate.openstack.swift.exception.AuthorizationException;
 
-/**
- * @version $Id:$
- */
 public class AuthenticationXml20ResponseHandlerTest {
 
     @Test(expected = AuthorizationException.class)
