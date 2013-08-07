@@ -11,7 +11,7 @@ import ch.iterate.openstack.swift.model.Region;
  */
 public class AuthenticationResponse extends Response {
 
-    protected String authToken;
+    private String authToken;
     private Set<Region> regions;
 
     public AuthenticationResponse(final HttpResponse r, final String authToken, final Set<Region> regions) {
