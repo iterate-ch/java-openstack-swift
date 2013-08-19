@@ -1,6 +1,5 @@
 package ch.iterate.openstack.swift.method;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpPost;
@@ -17,15 +16,15 @@ import ch.iterate.openstack.swift.Client;
 public class Authentication20RAXUsernameKeyRequest extends HttpPost implements AuthenticationRequest {
     private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class);
 
-    public Authentication20RAXUsernameKeyRequest(URI uri, String username, String apiKey, String tenant) {
+    public Authentication20RAXUsernameKeyRequest(URI uri, String username, String apiKey, String tenantId) {
         super(uri);
         JSONObject passwordCredentials = new JSONObject();
         passwordCredentials.put("username", username);
         passwordCredentials.put("apiKey", apiKey);
         JSONObject auth = new JSONObject();
         auth.put("RAX-KSKEY:apiKeyCredentials", passwordCredentials);
-        if(StringUtils.isNotBlank(tenant)) {
-            auth.put("tenantId", tenant);
+        if(tenantId != null) {
+            auth.put("tenantId", tenantId);
         }
         JSONObject container = new JSONObject();
         container.put("auth", auth);

@@ -1,6 +1,5 @@
 package ch.iterate.openstack.swift.method;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpPost;
@@ -24,7 +23,7 @@ public class Authentication20AccessKeySecretKeyRequest extends HttpPost implemen
         passwordCredentials.put("secretKey", secretKey);
         JSONObject auth = new JSONObject();
         auth.put("apiAccessKeyCredentials", passwordCredentials);
-        if(StringUtils.isNotBlank(tenantId)) {
+        if(tenantId != null) {
             auth.put("tenantId", tenantId);
         }
         JSONObject container = new JSONObject();

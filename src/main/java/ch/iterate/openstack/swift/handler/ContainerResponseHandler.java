@@ -1,15 +1,14 @@
 package ch.iterate.openstack.swift.handler;
 
-import org.apache.commons.lang.text.StrTokenizer;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import ch.iterate.openstack.swift.Response;
 import ch.iterate.openstack.swift.exception.AuthorizationException;
@@ -26,16 +25,14 @@ public class ContainerResponseHandler implements ResponseHandler<List<Container>
         this.region = region;
     }
 
-    public List<Container> handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
+    public List<Container> handleResponse(final HttpResponse response) throws IOException {
         if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-            final StrTokenizer tokenize = new StrTokenizer(EntityUtils.toString(response.getEntity()));
-            tokenize.setDelimiterString("\n");
-            final String[] containers = tokenize.getTokenArray();
-            ArrayList<Container> list = new ArrayList<Container>();
-            for(String container : containers) {
-                list.add(new Container(region, container));
+            final StringTokenizer tokenize = new StringTokenizer(EntityUtils.toString(response.getEntity()), "\n");
+            final ArrayList<Container> containers = new ArrayList<Container>();
+            while(tokenize.hasMoreTokens()) {
+                containers.add(new Container(region, tokenize.nextToken()));
             }
-            return list;
+            return containers;
         }
         else if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
             return new ArrayList<Container>();

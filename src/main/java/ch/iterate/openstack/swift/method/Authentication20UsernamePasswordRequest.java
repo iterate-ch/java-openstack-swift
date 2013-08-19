@@ -1,6 +1,5 @@
 package ch.iterate.openstack.swift.method;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpPost;
@@ -28,15 +27,15 @@ import ch.iterate.openstack.swift.Client;
 public class Authentication20UsernamePasswordRequest extends HttpPost implements AuthenticationRequest {
     private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class);
 
-    public Authentication20UsernamePasswordRequest(URI uri, String username, String password, String tenant) {
+    public Authentication20UsernamePasswordRequest(URI uri, String username, String password, String tenantName) {
         super(uri);
         JSONObject passwordCredentials = new JSONObject();
         passwordCredentials.put("username", username);
         passwordCredentials.put("password", password);
         JSONObject auth = new JSONObject();
         auth.put("passwordCredentials", passwordCredentials);
-        if(StringUtils.isNotBlank(tenant)) {
-            auth.put("tenantName", tenant);
+        if(tenantName != null) {
+            auth.put("tenantName", tenantName);
         }
         JSONObject container = new JSONObject();
         container.put("auth", auth);
