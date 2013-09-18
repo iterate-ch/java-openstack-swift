@@ -18,7 +18,9 @@ public class AccountInfoHandler implements ResponseHandler<AccountInfo> {
 
     public AccountInfo handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
         if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            return new AccountInfo(this.getAccountBytesUsed(response), this.getAccountContainerCount(response));
+            return new AccountInfo(this.getAccountBytesUsed(response),
+                    this.getAccountContainerCount(response),
+                    this.getAccountTempUrlKey(response));
         }
         else if(response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
             throw new AuthorizationException(new Response(response));
@@ -54,4 +56,11 @@ public class AccountInfoHandler implements ResponseHandler<AccountInfo> {
         return null;
     }
 
+    private String getAccountTempUrlKey(final HttpResponse response) {
+        Header tempUrlKeyHeader = response.getFirstHeader(Constants.X_ACCOUNT_META_TEMP_URL_KEY);
+        if(tempUrlKeyHeader != null) {
+            return tempUrlKeyHeader.getValue();
+        }
+        return null;
+    }
 }

@@ -1145,4 +1145,12 @@ public class Client {
         }
         this.execute(method, new DefaultResponseHandler());
     }
+
+    public void updateAccountMetadata(Region region, Map<String, String> metadata) throws IOException {
+        HttpPost method = new HttpPost(region.getStorageUrl());
+        for(Map.Entry<String, String> key : metadata.entrySet()) {
+            method.setHeader(key.getKey(), key.getValue());
+        }
+        this.execute(method, new DefaultResponseHandler());
+    }
 }

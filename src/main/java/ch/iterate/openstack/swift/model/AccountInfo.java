@@ -10,10 +10,12 @@ package ch.iterate.openstack.swift.model;
 public class AccountInfo {
     private long bytesUsed;
     private int containerCount;
+    private String tempUrlKey;
 
-    public AccountInfo(long bytes, int containers) {
-        bytesUsed = bytes;
-        containerCount = containers;
+    public AccountInfo(final long bytesUsed, final int containerCount, final String tempUrlKey) {
+        this.bytesUsed = bytesUsed;
+        this.containerCount = containerCount;
+        this.tempUrlKey = tempUrlKey;
     }
 
     /**
@@ -46,5 +48,13 @@ public class AccountInfo {
      */
     public void setContainerCount(int containerCount) {
         this.containerCount = containerCount;
+    }
+
+    public String getTempUrlKey() {
+        return tempUrlKey;
+    }
+
+    public void setTempUrlKey(final String tempUrlKey) {
+        this.tempUrlKey = tempUrlKey;
     }
 }

@@ -12,76 +12,85 @@ import java.util.Locale;
 
 public class Constants {
     /**
-     * HTTP Header token that identifies the username to Cloud Files *
+     * HTTP Header token that identifies the username
      */
     public static final String X_STORAGE_USER_DEFAULT = "x-auth-user";
     /**
-     * HTTP header token that identifies the password to Cloud Files *
+     * HTTP header token that identifies the password
      */
     public static final String X_STORAGE_PASS_DEFAULT = "x-auth-key";
     /**
-     * HTTP header token that identifies the Storage URL after a successful user login to Cloud Files *
+     * HTTP header token that identifies the Storage URL after a successful user login
      */
     public static final String X_STORAGE_URL = "X-Storage-Url";
     /**
-     * HTTP header that identifies the CDN Management URL after a successful login to Cloud Files *
+     * HTTP header that identifies the CDN Management URL after a successful login
      */
     public static final String X_CDN_MANAGEMENT_URL = "X-CDN-Management-URL";
     /**
-     * HTTP header token that identifies the Storage Token after a successful user login to Cloud Files *
+     * HTTP header token that identifies the Storage Token after a successful user login
      */
     public static final String X_AUTH_TOKEN = "X-Auth-Token";
     /**
-     * HTTP header token that is returned on a HEAD request against a Container.  The value of this header is the number of Objects in the Container *
+     * HTTP header token that is returned on a HEAD request against a Container.
+     * The value of this header is the number of Objects in the Container
      */
     public static final String X_CONTAINER_OBJECT_COUNT = "X-Container-Object-Count";
     /**
-     * HTTP header token that is returned on a HEAD request against a Container.  The value of this header is the number of Objects in the Container *
+     * HTTP header token that is returned on a HEAD request against a Container.
+     * The value of this header is the number of Objects in the Container
      */
     public static final String X_CONTAINER_BYTES_USED = "X-Container-Bytes-Used";
     /**
-     * HTTP header token that is returned on a HEAD request against an Account.  The value of this header is the number of Containers in the Account *
+     * HTTP header token that is returned on a HEAD request against an Account.
+     * The value of this header is the number of Containers in the Account
      */
     public static final String X_ACCOUNT_CONTAINER_COUNT = "X-Account-Container-Count";
     /**
-     * HTTP header token that is returned on a HEAD request against an Account.  The value of this header is the total size of the Objects in the Account *
+     * HTTP header token that is returned on a HEAD request against an Account.
+     * The value of this header is the total size of the Objects in the Account
      */
     public static final String X_ACCOUNT_BYTES_USED = "X-Account-Bytes-Used";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned on a HEAD request against an Account.
+     * This key can be any arbitrary sequence
+     */
+    public static final String X_ACCOUNT_META_TEMP_URL_KEY = "X-Account-Meta-Temp-URL-Key";
+    /**
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_URI = "X-CDN-URI";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_SSL_URI = "X-CDN-SSL-URI";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_Streaming_URI = "X-CDN-Streaming-URI";
     public static final String X_CDN_IOS_URI = "X-Cdn-Ios-Uri";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_TTL = "X-TTL";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_RETAIN_LOGS = "X-Log-Retention";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_ENABLED = "X-CDN-Enabled";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_USER_AGENT_ACL = "X-User-Agent-ACL";
     /**
-     * HTTP header token that is returned by calls to the CDN Management API *
+     * HTTP header token that is returned by calls to the CDN Management API
      */
     public static final String X_CDN_REFERRER_ACL = "X-Referrer-ACL ";
     /**
-     * HTTP header used by Cloud Files for the source of an object being copied. The value of this header is /<sourcecontainer>/<sourceobject> *
+     * HTTP header used by Cloud Files for the source of an object being copied. The value of this header is /<sourcecontainer>/<sourceobject>
      */
     public static final String X_COPY_FROM = "X-Copy-From";
     /**
