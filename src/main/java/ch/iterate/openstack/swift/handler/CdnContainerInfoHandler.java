@@ -27,7 +27,8 @@ public class CdnContainerInfoHandler implements ResponseHandler<CDNContainer> {
     }
 
     public CDNContainer handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
-        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT ||
+                response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             CDNContainer result = new CDNContainer(region, container);
             result.setCdnURL(this.getCdnUrl(response));
             result.setSslURL(this.getCdnSslUrl(response));

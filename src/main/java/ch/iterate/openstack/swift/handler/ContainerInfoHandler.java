@@ -27,7 +27,8 @@ public class ContainerInfoHandler implements ResponseHandler<ContainerInfo> {
     }
 
     public ContainerInfo handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
-        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT ||
+                response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             return new ContainerInfo(region, container,
                     this.getContainerObjectCount(response), this.getContainerBytesUsed(response));
         }

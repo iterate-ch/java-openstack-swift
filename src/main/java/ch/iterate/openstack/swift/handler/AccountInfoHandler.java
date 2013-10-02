@@ -17,7 +17,8 @@ import ch.iterate.openstack.swift.model.AccountInfo;
 public class AccountInfoHandler implements ResponseHandler<AccountInfo> {
 
     public AccountInfo handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
-        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT ||
+                response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             return new AccountInfo(this.getAccountBytesUsed(response),
                     this.getAccountContainerCount(response),
                     this.getAccountTempUrlKey(response));
