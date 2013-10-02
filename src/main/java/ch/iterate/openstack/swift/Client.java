@@ -6,7 +6,6 @@ package ch.iterate.openstack.swift;
 
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.net.URLCodec;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -643,10 +642,7 @@ public class Client {
     public void deleteContainer(Region region, String name) throws IOException {
         HttpDelete method = new HttpDelete(region.getStorageUrl(name));
         Response response = this.execute(method, new DefaultResponseHandler());
-        if(response.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            return;
-        }
-        else if(response.getStatusCode() == HttpStatus.SC_CONFLICT) {
+        if(response.getStatusCode() == HttpStatus.SC_CONFLICT) {
             throw new ContainerNotEmptyException(response);
         }
     }
@@ -718,15 +714,15 @@ public class Client {
     /**
      * Gets current CDN sharing status of the container
      *
-     * @param name Container
+     * @param container Container
      * @return Information on the container
      * @throws GenericException Unexpected response
      * @throws ch.iterate.openstack.swift.exception.NotFoundException
      *                          The Container has never been CDN enabled
      */
-    public CDNContainer getCDNContainerInfo(Region region, String name) throws IOException {
-        HttpHead method = new HttpHead(region.getCDNManagementUrl(name));
-        return this.execute(method, new CdnContainerInfoHandler(region, name));
+    public CDNContainer getCDNContainerInfo(Region region, String container) throws IOException {
+        HttpHead method = new HttpHead(region.getCDNManagementUrl(container));
+        return this.execute(method, new CdnContainerInfoHandler(region, container));
     }
 
     /**
@@ -739,23 +735,8 @@ public class Client {
      *                          The Container has never been CDN enabled
      */
     public boolean isCDNEnabled(Region region, String container) throws IOException {
-        HttpHead method = new HttpHead(region.getCDNManagementUrl(container));
-        Response response = this.execute(method, new DefaultResponseHandler());
-        if(response.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            for(Header hdr : response.getResponseHeaders()) {
-                String name = hdr.getName().toLowerCase();
-                if(Constants.X_CDN_ENABLED.equalsIgnoreCase(name)) {
-                    return Boolean.valueOf(hdr.getValue());
-                }
-            }
-            throw new GenericException(response);
-        }
-        else if(response.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
-            return false;
-        }
-        else {
-            throw new GenericException(response);
-        }
+        final CDNContainer info = this.getCDNContainerInfo(region, container);
+        return info.isEnabled();
     }
 
 
@@ -785,13 +766,7 @@ public class Client {
         if(emailAddresses != null) {
             method.setHeader(Constants.X_PURGE_EMAIL, emailAddresses);
         }
-        Response response = this.execute(method, new DefaultResponseHandler());
-        if(response.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            return;
-        }
-        else {
-            throw new GenericException(response);
-        }
+        this.execute(method, new DefaultResponseHandler());
     }
 
     /**
@@ -809,13 +784,7 @@ public class Client {
         if(emailAddresses != null) {
             method.setHeader(Constants.X_PURGE_EMAIL, emailAddresses);
         }
-        Response response = this.execute(method, new DefaultResponseHandler());
-        if(response.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            return;
-        }
-        else {
-            throw new GenericException(response);
-        }
+        this.execute(method, new DefaultResponseHandler());
     }
 
     /**
@@ -1037,13 +1006,7 @@ public class Client {
      */
     public void deleteObject(Region region, String container, String object) throws IOException {
         HttpDelete method = new HttpDelete(region.getStorageUrl(container, object));
-        Response response = this.execute(method, new DefaultResponseHandler());
-        if(response.getStatusCode() == HttpStatus.SC_NO_CONTENT) {
-            // Deleted
-        }
-        else {
-            throw new GenericException(response);
-        }
+        this.execute(method, new DefaultResponseHandler());
     }
 
     /**
