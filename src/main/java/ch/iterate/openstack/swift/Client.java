@@ -13,6 +13,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
@@ -25,6 +26,7 @@ import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
@@ -1006,6 +1008,30 @@ public class Client {
      */
     public void deleteObject(Region region, String container, String object) throws IOException {
         HttpDelete method = new HttpDelete(region.getStorageUrl(container, object));
+        this.execute(method, new DefaultResponseHandler());
+    }
+
+    public void deleteObjects(Region region, String container, List<String> objects) throws IOException {
+        HttpEntityEnclosingRequestBase method = new HttpEntityEnclosingRequestBase() {
+            @Override
+            public String getMethod() {
+                return "DELETE";
+            }
+        };
+        // Will delete multiple objects or containers from their account with a
+        // single request. Responds to DELETE requests with query parameter
+        // ?bulk-delete set.
+        LinkedList<NameValuePair> parameters = new LinkedList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("bulk-delete", "1"));
+        method.setURI(region.getStorageUrl(container, parameters));
+        method.setHeader(HttpHeaders.CONTENT_TYPE, "text/plain");
+        // Newline separated list of url encoded objects to delete
+        StringBuilder body = new StringBuilder();
+        for(String object : objects) {
+            final String path = region.getStorageUrl(container, object).getRawPath();
+            body.append(path.substring(region.getStorageUrl().getRawPath().length()));
+        }
+        method.setEntity(new StringEntity(body.toString(), "UTF-8"));
         this.execute(method, new DefaultResponseHandler());
     }
 
