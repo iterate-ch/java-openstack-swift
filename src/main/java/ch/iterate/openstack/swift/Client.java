@@ -934,6 +934,87 @@ public class Client {
         }
     }
 
+    /**
+     * @param container          The name of the container
+     * @param name               The name of the object
+     * @param entity             The name of the request entity (make sure to set the Content-Type
+     * @param metadata           The metadata for the object
+     * @param md5sum             The 32 character hex encoded MD5 sum of the data
+     * @param objectSize         The total size in bytes of the object to be stored
+     * @param segmentSize        Optional size in bytes of the object segments to be stored (forces large object support) default 4G
+     * @param dynamicLargeObject Optional setting to use dynamic large objects, False/null will use static large objects if required
+     * @param segmentContainer   Optional name of container to store file segments, defaults to storing chunks in the same container as the file sill appear
+     * @param segmentFolder      Optional name of folder for storing file segments, defaults to ".chunks/"
+     * @return The ETAG if the save was successful, null otherwise
+     * @throws GenericException There was a protocol level error talking to CloudFiles
+     */
+    public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize,
+                              Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder) throws IOException {
+        long singleObjectSizeLimit = (long)(5 * Math.pow(1024, 3));
+
+        // Default values for large object support
+        //
+        boolean forceLargeObject = segmentSize != null;
+        dynamicLargeObject = (dynamicLargeObject == null) ? false : dynamicLargeObject;
+        segmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : segmentSize;
+        segmentFolder = (segmentFolder == null) ? ".chunks/" : segmentFolder;
+        segmentContainer = (segmentContainer == null) ? container : segmentContainer;
+
+        if ((objectSize > singleObjectSizeLimit) || forceLargeObject) {
+            /*
+             * We need to upload a large object as defined by the method
+             * parameters. For now this is done sequentially, but a parallel
+             * version using appropriate random access to the underlying data
+             * may be desirable.
+             *
+             * We make the assumption that the given file size will not be
+             * greater than int.MAX_VALUE * segmentSize
+             *
+             */
+            int numberOfSegments = (int)Math.ceil(objectSize/segmentSize);
+            // Calculate the segment names
+            int segmentNumber = 1;
+            String name_base = segmentFolder + name + "/";
+            // Create substream from the entity inputstream
+            InputStream contentStream = entity.getContent();
+
+            // loop creating objects using the substreams
+            while (segmentNumber <= numberOfSegments) {
+                SubInputStream segmentStream = new SubInputStream(contentStream, segmentSize, false);
+                String segmentName = String.format(name_base + "%08d", segmentNumber);
+
+                // Upload the segment and record the following information
+                // etag returned by the simple upload
+                // total size of segment uploaded
+                // path of segment
+            }
+            // create manifest
+            if (dynamicLargeObject) {
+                // empty manifest with header detailing prefix
+            } else {
+                // specified manifest containing json list specifying details of the files.
+            }
+            // return manifest etag
+            return "";
+        } else {
+            return storeObject(region, container, name, entity, metadata, md5sum);
+        }
+    }
+
+    /**
+     * @param container   The name of the container
+     * @param name        The name of the object
+     * @param entity      The name of the request entity (make sure to set the Content-Type
+     * @param metadata    The metadata for the object
+     * @param md5sum      The 32 character hex encoded MD5 sum of the data
+     * @param objectSize  The total size in bytes of the object to be stored
+     * @return The ETAG if the save was successful, null otherwise
+     * @throws GenericException There was a protocol level error talking to CloudFiles
+     */
+    public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize) throws IOException {
+        return storeObject(region, container, name, entity, metadata, md5sum, objectSize, null, null, null, null);
+    }
+
     private Map<String, String> renameContainerMetadata(Map<String, String> metadata) {
         return this.renameMetadata(metadata, Constants.X_CONTAINER_META);
     }
