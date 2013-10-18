@@ -35,16 +35,17 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringBufferInputStream;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.ContainerExistsException;
@@ -65,6 +66,7 @@ import ch.iterate.openstack.swift.model.ContainerMetadata;
 import ch.iterate.openstack.swift.model.ObjectMetadata;
 import ch.iterate.openstack.swift.model.Region;
 import ch.iterate.openstack.swift.model.StorageObject;
+import org.json.simple.parser.JSONParser;
 
 /**
  * An OpenStack Swift client interface.  Here follows a basic example of logging in, creating a container and an
@@ -945,22 +947,39 @@ public class Client {
      * @param dynamicLargeObject Optional setting to use dynamic large objects, False/null will use static large objects if required
      * @param segmentContainer   Optional name of container to store file segments, defaults to storing chunks in the same container as the file sill appear
      * @param segmentFolder      Optional name of folder for storing file segments, defaults to ".chunks/"
+     * @param leaveSegments      Optional setting to leave segments of large objects in place when the manifest is overwrtten/changed
      * @return The ETAG if the save was successful, null otherwise
      * @throws GenericException There was a protocol level error talking to CloudFiles
      */
     public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize,
-                              Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder) throws IOException {
+                              Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder, Boolean leaveSegments) throws IOException {
+        /*
+         * Default values for large object support. We also use
+         * the defaults combined with the inputs to determine whether
+         * to store as a large object.
+         */
+
+        // The maximum size of a single object
         long singleObjectSizeLimit = (long)(5 * Math.pow(1024, 3));
 
-        // Default values for large object support
-        //
-        boolean forceLargeObject = segmentSize != null;
-        dynamicLargeObject = (dynamicLargeObject == null) ? false : dynamicLargeObject;
-        segmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : segmentSize;
-        segmentFolder = (segmentFolder == null) ? ".chunks/" : segmentFolder;
-        segmentContainer = (segmentContainer == null) ? container : segmentContainer;
+        // The default minimum segment size
+        long minSegmentSize = 1024L*1024L;
 
-        if ((objectSize > singleObjectSizeLimit) || forceLargeObject) {
+        // Set the segment size if specified,
+        long actualSegmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : Math.min(segmentSize, minSegmentSize);
+
+        // Use large objects if a segmentSize has been specified and the object size exceeds it
+        // or if the objectSize is larger than the single object size limit of ~5GiB
+        boolean useLargeObject = ((segmentSize != null) && (objectSize > actualSegmentSize)) // segmentSize specified, and objectSize large enough
+                                || (objectSize > singleObjectSizeLimit) // objectSize is larger than the maximum single object size limit
+                                || ((segmentSize != null) && (objectSize == null)); // segmentSize is specified, but objectSize is not.
+                                                                                    // Trust the user that their data is large enough!
+                                                                                    // They may get a "large object" with a single segment or a failure
+                                                                                    // because their data is smaller than the minimum segment size
+
+        if (!useLargeObject) {
+            return storeObject(region, container, name, entity, metadata, md5sum);
+        } else {
             /*
              * We need to upload a large object as defined by the method
              * parameters. For now this is done sequentially, but a parallel
@@ -971,33 +990,123 @@ public class Client {
              * greater than int.MAX_VALUE * segmentSize
              *
              */
-            int numberOfSegments = (int)Math.ceil(objectSize/segmentSize);
-            // Calculate the segment names
-            int segmentNumber = 1;
-            String name_base = segmentFolder + name + "/";
-            // Create substream from the entity inputstream
-            InputStream contentStream = entity.getContent();
+            dynamicLargeObject = (dynamicLargeObject == null) ? false : dynamicLargeObject;
+            segmentFolder = (segmentFolder == null) ? ".chunks" : segmentFolder;
+            segmentContainer = (segmentContainer == null) ? container : segmentContainer;
 
+            Map<String, List<StorageObject>> oldSegmentsToRemove = null;
+
+            // Deal with existing objects if necessary
+            if (!leaveSegments){
+                ObjectMetadata existingMetadata;
+                String manifestDLO = null;
+                Boolean manifestSLO = Boolean.FALSE;
+
+                try {
+                    existingMetadata = getObjectMetaData(region, container, name);
+
+                    if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
+                        manifestDLO = existingMetadata.getMetaData().get(Constants.MANIFEST_HEADER);
+                    } else if (existingMetadata.getMetaData().containsKey(Constants.X_STATIC_LARGE_OBJECT)) {
+                            JSONParser parser = new JSONParser();
+                            String manifestSLOValue = existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT);
+                            manifestSLO = (Boolean) parser.parse(manifestSLOValue);
+                    }
+                } catch (NotFoundException e) {
+                    // Just means no object exists already, so carry on
+                } catch (ParseException e) {
+                    // X_STATIC_LARGE_OBJECT header existed but failed to parse
+                    // for an SLO this must be set to "true", therefore fail upload
+                    return null;
+                }
+
+                if (manifestDLO != null) {
+                    // We have found an existing dynamic large object, so use the prefix to get a list of existing objects
+                    // if we're putting up a new dlo, make sure the segment prefixes are different
+                    // then we can delete anything that's not in the new list
+                    String oldContainer = manifestDLO.substring(0,manifestDLO.indexOf('/', 1));
+                    String oldPath = manifestDLO.substring(manifestDLO.indexOf('/', 1),manifestDLO.length());
+                    oldSegmentsToRemove = new HashMap<String, List<StorageObject>>();
+                    oldSegmentsToRemove.put(oldContainer, listObjects(region, oldContainer, oldPath));
+                } else if (manifestSLO) {
+                    // We have found an existing static large object, so grab the manifest data that
+                    // details the existing segments - delete any later that we don't need any more
+                }
+            }
+
+            int segmentNumber = 1;
+            long timeStamp = System.currentTimeMillis() / 1000L;
+            String segmentBase = String.format("/%s/%d/%d" , segmentFolder, timeStamp, objectSize);
+            Map<String, List<StorageObject>> newSegmentsAdded = null;
+
+            // Create substream from the entity inputstream
             // loop creating objects using the substreams
-            while (segmentNumber <= numberOfSegments) {
+            boolean finished = false;
+            InputStream contentStream = entity.getContent();
+            JSONArray manifestSLO = new JSONArray();
+            while (!finished) {
                 SubInputStream segmentStream = new SubInputStream(contentStream, segmentSize, false);
-                String segmentName = String.format(name_base + "%08d", segmentNumber);
+                String segmentName = String.format("%s/%08d", segmentBase, segmentNumber);
 
                 // Upload the segment and record the following information
-                // etag returned by the simple upload
-                // total size of segment uploaded
-                // path of segment
+                //  * ETAG returned by the simple upload
+                //  * total size of segment uploaded
+                //  * path of segment
+                String etag = storeObject(region, segmentContainer, segmentStream, "application/octet-stream", segmentName, new HashMap<String,String>());
+                String segmentPath = segmentContainer + segmentName;
+                long bytesUploaded = segmentStream.getBytesProduced();
+                List<StorageObject> newSegments = new LinkedList<StorageObject>();
+
+                // Create the appropriate manifest structure if we're making an SLO
+                if (!dynamicLargeObject) {
+                    JSONObject segmentJSON = new JSONObject();
+                    segmentJSON.put("path", segmentPath);
+                    segmentJSON.put("etag", etag);
+                    segmentJSON.put("size_bytes", bytesUploaded);
+                    // append the segment to the segment list maintaining the order
+                    manifestSLO.add(segmentJSON);
+
+                    newSegments.add(new StorageObject(segmentName));
+                }
+
+                segmentNumber++;
+                finished = segmentStream.endSourceReached();
+                newSegmentsAdded.put(segmentContainer, newSegments);
             }
+            contentStream.close();
+
             // create manifest
+            String manifestEtag;
             if (dynamicLargeObject) {
                 // empty manifest with header detailing prefix
+                metadata.put("X-Object-Manifest", segmentBase);
+                manifestEtag = storeObject(region, container, new ByteArrayInputStream(new byte[0]), entity.getContentType().getValue(), name, metadata);
             } else {
                 // specified manifest containing json list specifying details of the files.
+                String manifestContent = manifestSLO.toString();
+                name += "?multipart-manifest=put";
+                manifestEtag = storeObject(region, container, new ByteArrayInputStream(manifestContent.getBytes()), entity.getContentType().getValue(), name, metadata);
             }
-            // return manifest etag
-            return "";
-        } else {
-            return storeObject(region, container, name, entity, metadata, md5sum);
+
+            // Delete segments of overwritten file if necessary
+            if (!leaveSegments) {
+                // Clear out any objects we overwrote
+                if (!(oldSegmentsToRemove == null)) {
+                    for (String c: oldSegmentsToRemove.keySet()) {
+                        List<StorageObject> rmv = oldSegmentsToRemove.get(c);
+                        if (newSegmentsAdded.containsKey(c)){
+                            rmv.removeAll(newSegmentsAdded.get(c));
+                        }
+                        List<String> rmvNames = new LinkedList<String>();
+                        for (StorageObject s: rmv) {
+                            rmvNames.add(s.getName());
+                        }
+                        deleteObjects(region, c, rmvNames);
+                    }
+                }
+            }
+
+            return manifestEtag;
         }
     }
 
@@ -1012,7 +1121,7 @@ public class Client {
      * @throws GenericException There was a protocol level error talking to CloudFiles
      */
     public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize) throws IOException {
-        return storeObject(region, container, name, entity, metadata, md5sum, objectSize, null, null, null, null);
+        return storeObject(region, container, name, entity, metadata, md5sum, objectSize, null, null, null, null, null);
     }
 
     private Map<String, String> renameContainerMetadata(Map<String, String> metadata) {

@@ -13,12 +13,24 @@ import java.io.FilterInputStream;
  */
 public class SubInputStream extends FilterInputStream {
     private long bytesRemaining;
+    private long bytesProduced;
     private boolean closeSource;
+    private boolean endSourceReached;
 
     public SubInputStream(InputStream inp, long maxLength, boolean closeSource) {
         super(inp);
         this.bytesRemaining = maxLength;
+        this.bytesProduced = 0;
+        this.endSourceReached = false;
         this.closeSource = closeSource;
+    }
+
+    public boolean endSourceReached() {
+        return endSourceReached;
+    }
+
+    public long getBytesProduced() {
+        return bytesProduced;
     }
 
     @Override
@@ -27,7 +39,12 @@ public class SubInputStream extends FilterInputStream {
         if (bytesRemaining == 0) return -1;
 
         int data = super.read();
-        if (data >= 0) bytesRemaining--;
+        if (data >= 0) {
+            bytesRemaining--;
+            bytesProduced++;
+        } else {
+            endSourceReached = true;
+        }
         return data;
     }
 
@@ -51,7 +68,12 @@ public class SubInputStream extends FilterInputStream {
             // (long) bytesRemaining < (int) len - off
             bytesRead = super.read(b, off, (int) bytesRemaining);
         }
-        bytesRemaining -= bytesRead;
+        if (bytesRead >= 0) {
+            bytesRemaining -= bytesRead;
+            bytesProduced += bytesRead;
+        } else {
+            endSourceReached = true;
+        }
         return bytesRead;
     }
 

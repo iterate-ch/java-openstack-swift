@@ -94,9 +94,13 @@ public class Constants {
      */
     public static final String X_COPY_FROM = "X-Copy-From";
     /**
-     * HTTP Header used for Object Manifest *
+     * HTTP Header used for Dynamic Large Object Manifest *
      */
     public static final String MANIFEST_HEADER = "X-Object-Manifest";
+    /**
+     * HTTP Header used for Static Large Object Manifest Indicator *
+     */
+    public static final String X_STATIC_LARGE_OBJECT = "X-Static-Large-Object";
 
     public static final String X_PURGE_EMAIL = "X-Purge-Email";
 
@@ -108,6 +112,7 @@ public class Constants {
 
     public static final List<String> HTTP_HEADER_EDITABLE_NAMES = Arrays.asList(
             MANIFEST_HEADER,
+            X_STATIC_LARGE_OBJECT,
             X_PURGE_EMAIL,
             HttpHeaders.CONTENT_TYPE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_LANGUAGE.toLowerCase(Locale.ENGLISH),
