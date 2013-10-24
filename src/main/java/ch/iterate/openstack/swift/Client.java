@@ -19,6 +19,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
@@ -40,12 +41,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringBufferInputStream;
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.*;
 
 import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.ContainerExistsException;
@@ -952,12 +952,16 @@ public class Client {
      * @throws GenericException There was a protocol level error talking to CloudFiles
      */
     public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize,
-                              Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder, Boolean leaveSegments) throws IOException {
+                              Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder, Boolean leaveSegments) throws IOException, InterruptedException {
         /*
          * Default values for large object support. We also use
          * the defaults combined with the inputs to determine whether
          * to store as a large object.
          */
+
+        System.out.println("Region: " + region);
+        System.out.println("Container: " + container);
+        System.out.println("Name: " + name);
 
         // The maximum size of a single object
         long singleObjectSizeLimit = (long)(5 * Math.pow(1024, 3));
@@ -966,7 +970,7 @@ public class Client {
         long minSegmentSize = 1024L*1024L;
 
         // Set the segment size if specified,
-        long actualSegmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : Math.min(segmentSize, minSegmentSize);
+        long actualSegmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : Math.max(segmentSize, minSegmentSize);
 
         // Use large objects if a segmentSize has been specified and the object size exceeds it
         // or if the objectSize is larger than the single object size limit of ~5GiB
@@ -976,7 +980,6 @@ public class Client {
                                                                                     // Trust the user that their data is large enough!
                                                                                     // They may get a "large object" with a single segment or a failure
                                                                                     // because their data is smaller than the minimum segment size
-
         if (!useLargeObject) {
             return storeObject(region, container, name, entity, metadata, md5sum);
         } else {
@@ -990,8 +993,9 @@ public class Client {
              * greater than int.MAX_VALUE * segmentSize
              *
              */
-            dynamicLargeObject = (dynamicLargeObject == null) ? false : dynamicLargeObject;
-            segmentFolder = (segmentFolder == null) ? ".chunks" : segmentFolder;
+            leaveSegments = (leaveSegments == null) ? Boolean.FALSE : leaveSegments;
+            dynamicLargeObject = (dynamicLargeObject == null) ? Boolean.FALSE : dynamicLargeObject;
+            segmentFolder = (segmentFolder == null) ? ".file-segments" : segmentFolder;
             segmentContainer = (segmentContainer == null) ? container : segmentContainer;
 
             Map<String, List<StorageObject>> oldSegmentsToRemove = null;
@@ -1036,26 +1040,54 @@ public class Client {
 
             int segmentNumber = 1;
             long timeStamp = System.currentTimeMillis() / 1000L;
-            String segmentBase = String.format("/%s/%d/%d" , segmentFolder, timeStamp, objectSize);
-            Map<String, List<StorageObject>> newSegmentsAdded = null;
+            String segmentBase = String.format("%s/%d/%d" , segmentFolder, timeStamp, objectSize);
 
             // Create substream from the entity inputstream
             // loop creating objects using the substreams
             boolean finished = false;
-            InputStream contentStream = entity.getContent();
+            //InputStream contentStream = entity.getContent();
+            final PipedInputStream contentInStream = new PipedInputStream(64*1024);
+            final PipedOutputStream contentOutStream = new PipedOutputStream(contentInStream);
+            SubInputStream segmentStream = new SubInputStream(contentInStream, actualSegmentSize+2, false);
+            //CheckedInputStream segmentStream2 = new CheckedInputStream(contentInStream);//  SubInputStream(contentInStream, actualSegmentSize+2, false);
+
+            // Fork the call to entity.writeTo() that allows us to grab any exceptions raised
+            final HttpEntity e = entity;
+
+            final Callable<Boolean> writer = new Callable<Boolean>() {
+                public Boolean call() throws Exception {
+                    e.writeTo(contentOutStream);
+                    return Boolean.TRUE;
+                }
+            };
+
+            ExecutorService writeExecutor = Executors.newSingleThreadExecutor();
+            final Future<Boolean> future = writeExecutor.submit(writer);
+            // Check the future for exceptions after we've finished upoading segments
+
+            Map<String, List<StorageObject>> newSegmentsAdded = new HashMap<String, List<StorageObject>>();
+            List<StorageObject> newSegments = new LinkedList<StorageObject>();
             JSONArray manifestSLO = new JSONArray();
+
             while (!finished) {
-                SubInputStream segmentStream = new SubInputStream(contentStream, segmentSize, false);
                 String segmentName = String.format("%s/%08d", segmentBase, segmentNumber);
 
                 // Upload the segment and record the following information
                 //  * ETAG returned by the simple upload
                 //  * total size of segment uploaded
                 //  * path of segment
-                String etag = storeObject(region, segmentContainer, segmentStream, "application/octet-stream", segmentName, new HashMap<String,String>());
-                String segmentPath = segmentContainer + segmentName;
+                String etag = "";
+                boolean error = false;
+                try {
+                    etag = storeObject(region, segmentContainer, segmentStream, "application/octet-stream", segmentName, new HashMap<String,String>());
+                } catch (IOException ex) {
+                    // Finished storing the object
+                    System.out.println("Caught IO Exception: " + ex.getMessage());
+                    ex.printStackTrace();
+                    throw ex;
+                }
+                String segmentPath = segmentContainer + "/" + segmentName;
                 long bytesUploaded = segmentStream.getBytesProduced();
-                List<StorageObject> newSegments = new LinkedList<StorageObject>();
 
                 // Create the appropriate manifest structure if we're making an SLO
                 if (!dynamicLargeObject) {
@@ -1070,22 +1102,49 @@ public class Client {
                 }
 
                 segmentNumber++;
-                finished = segmentStream.endSourceReached();
+                if (!finished) {
+                    finished = segmentStream.endSourceReached();
+                }
                 newSegmentsAdded.put(segmentContainer, newSegments);
+                System.out.println("JSON: " + manifestSLO.toString());
+                if (error) return "";
+
+                segmentStream.readMoreBytes(actualSegmentSize);
             }
-            contentStream.close();
+
+            // Did the writing to the stream work?
+            try {
+                future.get();
+            } catch (InterruptedException ex) {
+                // The write was interrupted... delete the segments?
+            } catch (ExecutionException ex) {
+                // This must be an IOException because we only call entity.writeTo()
+                throw (IOException) ex.getCause();
+            }
 
             // create manifest
-            String manifestEtag;
+            String manifestEtag = null;
             if (dynamicLargeObject) {
                 // empty manifest with header detailing prefix
                 metadata.put("X-Object-Manifest", segmentBase);
                 manifestEtag = storeObject(region, container, new ByteArrayInputStream(new byte[0]), entity.getContentType().getValue(), name, metadata);
             } else {
                 // specified manifest containing json list specifying details of the files.
-                String manifestContent = manifestSLO.toString();
-                name += "?multipart-manifest=put";
-                manifestEtag = storeObject(region, container, new ByteArrayInputStream(manifestContent.getBytes()), entity.getContentType().getValue(), name, metadata);
+                URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
+                urlBuild.setParameter("multipart-manifest", "put");
+                URI url;
+                try {
+                    url = urlBuild.build();
+                    String manifestContent = manifestSLO.toString();
+                    InputStreamEntity manifestEntity = new InputStreamEntity(new ByteArrayInputStream(manifestContent.getBytes()), -1);
+                    manifestEntity.setChunked(true);
+                    manifestEntity.setContentType(entity.getContentType());
+                    HttpPut method = new HttpPut(url);
+                    method.setEntity(manifestEntity);
+                    manifestEtag = storeObject(region, container, name, manifestEntity, metadata, null);
+                } catch (URISyntaxException ex) {
+                    ex.printStackTrace();
+                }
             }
 
             // Delete segments of overwritten file if necessary
@@ -1120,7 +1179,7 @@ public class Client {
      * @return The ETAG if the save was successful, null otherwise
      * @throws GenericException There was a protocol level error talking to CloudFiles
      */
-    public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize) throws IOException {
+    public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize) throws IOException, InterruptedException {
         return storeObject(region, container, name, entity, metadata, md5sum, objectSize, null, null, null, null, null);
     }
 

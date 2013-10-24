@@ -33,6 +33,11 @@ public class SubInputStream extends FilterInputStream {
         return bytesProduced;
     }
 
+    public void readMoreBytes(long byteCount) {
+        this.bytesRemaining = byteCount;
+        this.bytesProduced = 0L;
+    }
+
     @Override
     public int read() throws IOException {
         // No more data to be read from this subStream
@@ -56,7 +61,9 @@ public class SubInputStream extends FilterInputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         // No more data to return from this subStream
-        if (bytesRemaining == 0) return -1;
+        if (bytesRemaining == 0) {
+            return -1;
+        }
         // test off and len to ensure safe cast later
         if (off < 0 || len < 0) throw (new IndexOutOfBoundsException());
 
@@ -68,11 +75,11 @@ public class SubInputStream extends FilterInputStream {
             // (long) bytesRemaining < (int) len - off
             bytesRead = super.read(b, off, (int) bytesRemaining);
         }
-        if (bytesRead >= 0) {
+        if (bytesRead < 0) {
+            endSourceReached = true;
+        } else {
             bytesRemaining -= bytesRead;
             bytesProduced += bytesRead;
-        } else {
-            endSourceReached = true;
         }
         return bytesRead;
     }
@@ -88,13 +95,16 @@ public class SubInputStream extends FilterInputStream {
         } else {
             bytesSkipped = super.skip(bytesRemaining);
         }
-        bytesRemaining -= bytesSkipped;
+        if (bytesSkipped > 0) {
+            bytesRemaining -= bytesSkipped;
+        }
         return bytesSkipped;
     }
 
     @Override
     public void close() throws IOException {
-        if (closeSource) {
+        System.out.println("close called");
+        if (closeSource || endSourceReached) {
             super.close();
         }
         bytesRemaining = 0;
