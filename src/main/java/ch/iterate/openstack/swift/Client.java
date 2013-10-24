@@ -1127,6 +1127,7 @@ public class Client {
             if (dynamicLargeObject) {
                 // empty manifest with header detailing prefix
                 metadata.put("X-Object-Manifest", segmentBase);
+                metadata.put("x-object-meta-mtime", String.format("%s", timeStamp));
                 manifestEtag = storeObject(region, container, new ByteArrayInputStream(new byte[0]), entity.getContentType().getValue(), name, metadata);
             } else {
                 // specified manifest containing json list specifying details of the files.
@@ -1141,7 +1142,14 @@ public class Client {
                     manifestEntity.setContentType(entity.getContentType());
                     HttpPut method = new HttpPut(url);
                     method.setEntity(manifestEntity);
-                    manifestEtag = storeObject(region, container, name, manifestEntity, metadata, null);
+                    method.setHeader("x-static-large-object", "true");
+                    Response response = this.execute(method, new DefaultResponseHandler());
+                    if(response.getStatusCode() == HttpStatus.SC_CREATED) {
+                        manifestEtag = response.getResponseHeader(HttpHeaders.ETAG).getValue();
+                    }
+                    else {
+                        throw new GenericException(response);
+                    }
                 } catch (URISyntaxException ex) {
                     ex.printStackTrace();
                 }
