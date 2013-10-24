@@ -1048,7 +1048,7 @@ public class Client {
             //InputStream contentStream = entity.getContent();
             final PipedInputStream contentInStream = new PipedInputStream(64*1024);
             final PipedOutputStream contentOutStream = new PipedOutputStream(contentInStream);
-            SubInputStream segmentStream = new SubInputStream(contentInStream, actualSegmentSize+2, false);
+            SubInputStream segmentStream = new SubInputStream(contentInStream, actualSegmentSize, false);
             //CheckedInputStream segmentStream2 = new CheckedInputStream(contentInStream);//  SubInputStream(contentInStream, actualSegmentSize+2, false);
 
             // Fork the call to entity.writeTo() that allows us to grab any exceptions raised
