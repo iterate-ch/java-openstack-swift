@@ -954,32 +954,43 @@ public class Client {
     public String storeObject(Region region, String container, String name, HttpEntity entity, Map<String, String> metadata, String md5sum, Long objectSize,
                               Long segmentSize, Boolean dynamicLargeObject, String segmentContainer, String segmentFolder, Boolean leaveSegments) throws IOException, InterruptedException {
         /*
-         * Default values for large object support. We also use
-         * the defaults combined with the inputs to determine whether
-         * to store as a large object.
+         * Default values for large object support. We also use the defaults combined with the inputs
+         * to determine whether to store as a large object.
          */
 
-        System.out.println("Region: " + region);
-        System.out.println("Container: " + container);
-        System.out.println("Name: " + name);
-
-        // The maximum size of a single object
+        /*
+         * The maximum size of a single object (5GiB).
+         */
         long singleObjectSizeLimit = (long)(5 * Math.pow(1024, 3));
 
-        // The default minimum segment size
+        /*
+         * The default minimum segment size (1MiB).
+         */
         long minSegmentSize = 1024L*1024L;
 
-        // Set the segment size if specified,
+        /*
+         * Set the segment size.
+         *
+         * Defaults to 4GiB segments, and will not permit smaller than 1MiB segments.
+         */
         long actualSegmentSize = (segmentSize == null) ? (long)(4 * Math.pow(1024, 3)) : Math.max(segmentSize, minSegmentSize);
 
-        // Use large objects if a segmentSize has been specified and the object size exceeds it
-        // or if the objectSize is larger than the single object size limit of ~5GiB
-        boolean useLargeObject = ((segmentSize != null) && (objectSize > actualSegmentSize)) // segmentSize specified, and objectSize large enough
-                                || (objectSize > singleObjectSizeLimit) // objectSize is larger than the maximum single object size limit
-                                || ((segmentSize != null) && (objectSize == null)); // segmentSize is specified, but objectSize is not.
-                                                                                    // Trust the user that their data is large enough!
-                                                                                    // They may get a "large object" with a single segment or a failure
-                                                                                    // because their data is smaller than the minimum segment size
+        /*
+         * Determines if we will store using large objects - we may do this for 3 reasons:
+         *
+         *  - A segmentSize has been specified and the object size is greater than the minimum segment size
+         *  - If an objectSize is provided and is larger than the single object size limit of 5GiB
+         *  - A segmentSize has been specified, but no objectSize given (we take this as a request for segmentation)
+         *
+         * The last case may fail if the user does not provide at least as much data as the minimum segment
+         * size configured on the server, and will always produce a large object structure (even if only one
+         * small segment is required).
+         */
+        objectSize = (objectSize == null) ? -1 : objectSize;
+        boolean useLargeObject = ((segmentSize != null) && (objectSize > actualSegmentSize))
+                                || (objectSize > singleObjectSizeLimit)
+                                || ((segmentSize != null) && (objectSize == -1));
+
         if (!useLargeObject) {
             return storeObject(region, container, name, entity, metadata, md5sum);
         } else {
@@ -1000,7 +1011,15 @@ public class Client {
 
             Map<String, List<StorageObject>> oldSegmentsToRemove = null;
 
-            // Deal with existing objects if necessary
+            /*
+             * If we have chosen not to leave existing large object segments in place (default)
+             * then we need to collect information about any existing file segments so that we can
+             * deal with them after we complete the upload of the new manifest.
+             *
+             * We should only delete existing segments after a successful upload of a new manifest file
+             * because this constitutes an object update and the older file should remain available
+             * until the new file can be downloaded.
+             */
             if (!leaveSegments){
                 ObjectMetadata existingMetadata;
                 String manifestDLO = null;
@@ -1012,29 +1031,40 @@ public class Client {
                     if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
                         manifestDLO = existingMetadata.getMetaData().get(Constants.MANIFEST_HEADER);
                     } else if (existingMetadata.getMetaData().containsKey(Constants.X_STATIC_LARGE_OBJECT)) {
-                            JSONParser parser = new JSONParser();
-                            String manifestSLOValue = existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT);
-                            manifestSLO = (Boolean) parser.parse(manifestSLOValue);
+                        JSONParser parser = new JSONParser();
+                        String manifestSLOValue = existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT);
+                        manifestSLO = (Boolean) parser.parse(manifestSLOValue);
                     }
                 } catch (NotFoundException e) {
-                    // Just means no object exists already, so carry on
+                    /*
+                     * Just means no object exists already, so continue
+                     */
                 } catch (ParseException e) {
-                    // X_STATIC_LARGE_OBJECT header existed but failed to parse
-                    // for an SLO this must be set to "true", therefore fail upload
+                    /*
+                     * X_STATIC_LARGE_OBJECT header existed but failed to parse.
+                     * If a static large object already exists this must be set to "true".
+                     * If we got here then the X_STATIC_LARGE_OBJECT header existed, but failed
+                     * to parse as a boolean, so fail upload as a precaution.
+                     */
                     return null;
                 }
 
                 if (manifestDLO != null) {
-                    // We have found an existing dynamic large object, so use the prefix to get a list of existing objects
-                    // if we're putting up a new dlo, make sure the segment prefixes are different
-                    // then we can delete anything that's not in the new list
+                    /*
+                     * We have found an existing dynamic large object, so use the prefix to get a list of
+                     * existing objects. If we're putting up a new dlo, make sure the segment prefixes are
+                     * different, then we can delete anything that's not in the new list if necessary.
+                     */
                     String oldContainer = manifestDLO.substring(0,manifestDLO.indexOf('/', 1));
                     String oldPath = manifestDLO.substring(manifestDLO.indexOf('/', 1),manifestDLO.length());
                     oldSegmentsToRemove = new HashMap<String, List<StorageObject>>();
                     oldSegmentsToRemove.put(oldContainer, listObjects(region, oldContainer, oldPath));
                 } else if (manifestSLO) {
-                    // We have found an existing static large object, so grab the manifest data that
-                    // details the existing segments - delete any later that we don't need any more
+                    /*
+                     * We have found an existing static large object, so grab the manifest data that
+                     * details the existing segments - delete any later that we don't need any more
+                     */
+
                 }
             }
 
@@ -1042,16 +1072,17 @@ public class Client {
             long timeStamp = System.currentTimeMillis() / 1000L;
             String segmentBase = String.format("%s/%d/%d" , segmentFolder, timeStamp, objectSize);
 
-            // Create substream from the entity inputstream
-            // loop creating objects using the substreams
-            boolean finished = false;
-            //InputStream contentStream = entity.getContent();
+            /*
+             * Create subInputStream from the OutputStream we will pass to the
+             * HttpEntity for writing content.
+             */
             final PipedInputStream contentInStream = new PipedInputStream(64*1024);
             final PipedOutputStream contentOutStream = new PipedOutputStream(contentInStream);
             SubInputStream segmentStream = new SubInputStream(contentInStream, actualSegmentSize, false);
-            //CheckedInputStream segmentStream2 = new CheckedInputStream(contentInStream);//  SubInputStream(contentInStream, actualSegmentSize+2, false);
 
-            // Fork the call to entity.writeTo() that allows us to grab any exceptions raised
+            /*
+             * Fork the call to entity.writeTo() that allows us to grab any exceptions raised
+             */
             final HttpEntity e = entity;
 
             final Callable<Boolean> writer = new Callable<Boolean>() {
@@ -1063,20 +1094,23 @@ public class Client {
 
             ExecutorService writeExecutor = Executors.newSingleThreadExecutor();
             final Future<Boolean> future = writeExecutor.submit(writer);
-            // Check the future for exceptions after we've finished upoading segments
+            /*
+             * Check the future for exceptions after we've finished uploading segments
+             */
 
             Map<String, List<StorageObject>> newSegmentsAdded = new HashMap<String, List<StorageObject>>();
             List<StorageObject> newSegments = new LinkedList<StorageObject>();
             JSONArray manifestSLO = new JSONArray();
+            boolean finished = false;
 
+            /*
+             * Upload each segment of the file by reading sections of the content input stream
+             * until the entire underlying stream is complete
+             */
             while (!finished) {
                 String segmentName = String.format("%s/%08d", segmentBase, segmentNumber);
 
-                // Upload the segment and record the following information
-                //  * ETAG returned by the simple upload
-                //  * total size of segment uploaded
-                //  * path of segment
-                String etag = "";
+                String etag;
                 boolean error = false;
                 try {
                     etag = storeObject(region, segmentContainer, segmentStream, "application/octet-stream", segmentName, new HashMap<String,String>());
@@ -1089,13 +1123,20 @@ public class Client {
                 String segmentPath = segmentContainer + "/" + segmentName;
                 long bytesUploaded = segmentStream.getBytesProduced();
 
-                // Create the appropriate manifest structure if we're making an SLO
+                /*
+                 * Create the appropriate manifest structure if we're making a static large
+                 * object.
+                 *
+                 *   ETAG returned by the simple upload
+                 *   total size of segment uploaded
+                 *   path of segment
+                 */
                 if (!dynamicLargeObject) {
                     JSONObject segmentJSON = new JSONObject();
+
                     segmentJSON.put("path", segmentPath);
                     segmentJSON.put("etag", etag);
                     segmentJSON.put("size_bytes", bytesUploaded);
-                    // append the segment to the segment list maintaining the order
                     manifestSLO.add(segmentJSON);
 
                     newSegments.add(new StorageObject(segmentName));
@@ -1112,25 +1153,46 @@ public class Client {
                 segmentStream.readMoreBytes(actualSegmentSize);
             }
 
-            // Did the writing to the stream work?
+            /*
+             * Attempts to retrieve the return value from the write operation
+             * Any exceptions raised can then be handled appropriately
+             */
             try {
                 future.get();
             } catch (InterruptedException ex) {
-                // The write was interrupted... delete the segments?
+                /*
+                 * The write was interrupted... delete the segments?
+                 */
             } catch (ExecutionException ex) {
-                // This must be an IOException because we only call entity.writeTo()
-                throw (IOException) ex.getCause();
+                /*
+                 * This should always be an IOException or a RuntimeException
+                 * because the call to entity.writeTo() only throws IOException
+                 */
+                Throwable t = ex.getCause();
+
+                if (t instanceof IOException) {
+                    throw (IOException) t;
+                } else {
+                    throw (RuntimeException) t;
+                }
             }
 
-            // create manifest
+            /*
+             * Create an appropriate manifest depending on our DLO/SLO choice
+             */
             String manifestEtag = null;
             if (dynamicLargeObject) {
-                // empty manifest with header detailing prefix
+                /*
+                 * Empty manifest with header detailing the shared prefix of object segments
+                 */
+                long manifestTimeStamp = System.currentTimeMillis() / 1000L;
                 metadata.put("X-Object-Manifest", segmentBase);
-                metadata.put("x-object-meta-mtime", String.format("%s", timeStamp));
+                metadata.put("x-object-meta-mtime", String.format("%s", manifestTimeStamp));
                 manifestEtag = storeObject(region, container, new ByteArrayInputStream(new byte[0]), entity.getContentType().getValue(), name, metadata);
             } else {
-                // specified manifest containing json list specifying details of the files.
+                /*
+                 * Manifest containing json list specifying details of the object segments.
+                 */
                 URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
                 urlBuild.setParameter("multipart-manifest", "put");
                 URI url;
@@ -1155,9 +1217,14 @@ public class Client {
                 }
             }
 
-            // Delete segments of overwritten file if necessary
+            /*
+             * Delete stale segments of overwritten large object if requested.
+             */
             if (!leaveSegments) {
-                // Clear out any objects we overwrote
+                /*
+                 * Before deleting old segments, remove any objects from the delete list
+                 * that are also part of a new static large object that were updated during the upload.
+                 */
                 if (!(oldSegmentsToRemove == null)) {
                     for (String c: oldSegmentsToRemove.keySet()) {
                         List<StorageObject> rmv = oldSegmentsToRemove.get(c);
