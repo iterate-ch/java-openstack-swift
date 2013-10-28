@@ -38,6 +38,7 @@ import org.apache.http.protocol.HTTP;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
@@ -66,7 +67,6 @@ import ch.iterate.openstack.swift.model.ContainerMetadata;
 import ch.iterate.openstack.swift.model.ObjectMetadata;
 import ch.iterate.openstack.swift.model.Region;
 import ch.iterate.openstack.swift.model.StorageObject;
-import org.json.simple.parser.JSONParser;
 
 /**
  * An OpenStack Swift client interface.  Here follows a basic example of logging in, creating a container and an
@@ -794,6 +794,7 @@ public class Client {
     /**
      * Gets list of all of the containers associated with this account.
      *
+     * @param region  The name of the storage region
      * @return A list of containers
      * @throws GenericException Unexpected response
      */
@@ -804,7 +805,8 @@ public class Client {
     /**
      * Gets list of all of the containers associated with this account.
      *
-     * @param limit The maximum number of container names to return
+     * @param region  The name of the storage region
+     * @param limit   The maximum number of container names to return
      * @return A list of containers
      * @throws GenericException Unexpected response
      */
@@ -815,8 +817,9 @@ public class Client {
     /**
      * Gets list of all of the containers associated with this account.
      *
-     * @param limit  The maximum number of container names to return
-     * @param marker All of the names will come after <code>marker</code> lexicographically.
+     * @param region  The name of the storage region
+     * @param limit   The maximum number of container names to return
+     * @param marker  All of the names will come after <code>marker</code> lexicographically.
      * @return A list of containers
      * @throws GenericException Unexpected response
      */
@@ -834,34 +837,36 @@ public class Client {
     }
 
     /**
-     * Create a manifest on the server, including metadata
+     * Create a Dynamic Large Object manifest on the server, including metadata
      *
-     * @param container   The name of the container
-     * @param contentType The MIME type of the file
-     * @param name        The name of the file on the server
-     * @param manifest    Set manifest content here
-     * @return True if response code is 201
+     * @param region        The name of the storage region
+     * @param container     The name of the container
+     * @param contentType   The MIME type of the file
+     * @param name          The name of the file on the server
+     * @param commonPrefix  Set manifest header content here (the shared prefix of objects that make up the dynamic large object)
+     * @return the ETAG of the large object if response code is 201
      * @throws GenericException Unexpected response
      */
-    public boolean createManifestObject(Region region, String container, String contentType, String name, String manifest) throws IOException {
-        return createManifestObject(region, container, contentType, name, manifest, new HashMap<String, String>());
+    public String createDLOManifestObject(Region region, String container, String contentType, String name, String commonPrefix) throws IOException {
+        return createDLOManifestObject(region, container, contentType, name, commonPrefix, new HashMap<String, String>());
     }
 
     /**
-     * Create a manifest on the server, including metadata
+     * Create a Dynamic Large Object manifest on the server, including metadata
      *
-     * @param container   The name of the container
-     * @param contentType The MIME type of the file
-     * @param name        The name of the file on the server
-     * @param manifest    Set manifest content here
-     * @param metadata    A map with the metadata as key names and values as the metadata values
-     * @return True if response code is 201
+     * @param region        The name of the storage region
+     * @param container     The name of the container
+     * @param contentType   The MIME type of the file
+     * @param name          The name of the file on the server
+     * @param commonPrefix  Set manifest header content here (the shared prefix of objects that make up the dynamic large object)
+     * @param metadata      A map with the metadata as key names and values as the metadata values
+     * @return the ETAG of the large object if response code is 201
      * @throws GenericException Unexpected response
      */
-    public boolean createManifestObject(Region region, String container, String contentType, String name, String manifest, Map<String, String> metadata) throws IOException {
+    public String createDLOManifestObject(Region region, String container, String contentType, String name, String commonPrefix, Map<String, String> metadata) throws IOException {
         byte[] arr = new byte[0];
         HttpPut method = new HttpPut(region.getStorageUrl(container, name));
-        method.setHeader(Constants.MANIFEST_HEADER, manifest);
+        method.setHeader(Constants.MANIFEST_HEADER, commonPrefix);
         ByteArrayEntity entity = new ByteArrayEntity(arr);
         entity.setContentType(contentType);
         method.setEntity(entity);
@@ -870,7 +875,7 @@ public class Client {
         }
         Response response = this.execute(method, new DefaultResponseHandler());
         if(response.getStatusCode() == HttpStatus.SC_CREATED) {
-            return true;
+            return response.getResponseHeader(HttpHeaders.ETAG).getValue();
         }
         else {
             throw new GenericException(response);
@@ -878,16 +883,144 @@ public class Client {
     }
 
     /**
+     * Create a Static Large Object manifest on the server, including metadata
+     *
+     * @param region       The name of the storage region
+     * @param container    The name of the container
+     * @param contentType  The MIME type of the file
+     * @param name         The name of the file on the server
+     * @param manifest     Set manifest content here (A JSON string describing the large object contents)
+     *                     Should be an ordered list of maps with the following keys for each object segment:
+     *                        - "path" the path (including container) to the object segment
+     *                        - "size_bytes" the size in byes of the segment
+     *                        - "etag" the etag of the segment
+     * @param metadata     A map with the metadata as key names and values as the metadata values
+     * @return True if response code is 201
+     * @throws GenericException Unexpected response
+     */
+    public String createSLOManifestObject(Region region, String container, String contentType, String name, String manifest, Map<String, String> metadata) throws IOException {
+        String manifestEtag;
+        URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
+        urlBuild.setParameter("multipart-manifest", "put");
+        URI url;
+        try {
+            url = urlBuild.build();
+            InputStreamEntity manifestEntity = new InputStreamEntity(new ByteArrayInputStream(manifest.getBytes()), -1);
+            manifestEntity.setChunked(true);
+            manifestEntity.setContentType(contentType);
+            HttpPut method = new HttpPut(url);
+            method.setEntity(manifestEntity);
+            for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+                method.setHeader(key.getKey(), key.getValue());
+            }
+            method.setHeader(Constants.X_STATIC_LARGE_OBJECT, "true");
+            Response response = this.execute(method, new DefaultResponseHandler());
+            if(response.getStatusCode() == HttpStatus.SC_CREATED) {
+                manifestEtag = response.getResponseHeader(HttpHeaders.ETAG).getValue();
+            }
+            else {
+                throw new GenericException(response);
+            }
+        } catch (URISyntaxException ex) {
+            throw new GenericException("URI Building failed when creating Static Large Object manifest", ex);
+        }
+        return manifestEtag;
+    }
+
+    /**
+     * Lists the segments associated with an existing object.
+     *
+     * @param region      The name of the storage region
+     * @param container   The name of the container
+     * @param name        The name of the object
+     * @return a Map from container to lists of storage objects if a large object is present, otherwise null
+     */
+    public Map<String, List<StorageObject>> listObjectSegments(Region region, String container, String name) throws IOException {
+
+        Map<String, List<StorageObject>> existingSegments = new HashMap<String, List<StorageObject>>();
+
+        try {
+            ObjectMetadata existingMetadata = getObjectMetaData(region, container, name);
+
+            if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
+                /*
+                 * We have found an existing dynamic large object, so use the prefix to get a list of
+                 * existing objects. If we're putting up a new dlo, make sure the segment prefixes are
+                 * different, then we can delete anything that's not in the new list if necessary.
+                 */
+                String manifestDLO = existingMetadata.getMetaData().get(Constants.MANIFEST_HEADER);
+                String oldContainer = manifestDLO.substring(0,manifestDLO.indexOf('/', 1));
+                String oldPath = manifestDLO.substring(manifestDLO.indexOf('/', 1),manifestDLO.length());
+                existingSegments.put(oldContainer, listObjects(region, oldContainer, oldPath));
+            } else if (existingMetadata.getMetaData().containsKey(Constants.X_STATIC_LARGE_OBJECT)) {
+                /*
+                 * We have found an existing static large object, so grab the manifest data that
+                 * details the existing segments - delete any later that we don't need any more
+                 */
+                JSONParser parser = new JSONParser();
+                Boolean isSLO = (Boolean) parser.parse(existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT));
+                if (isSLO) {
+                    URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
+                    urlBuild.setParameter("multipart-manifest", "get");
+                    URI url = urlBuild.build();
+                    HttpGet method = new HttpGet(url);
+                    Response response = this.execute(method);
+                    if(response.getStatusCode() == HttpStatus.SC_OK) {
+                        String manifest = response.getResponseBodyAsString();
+                        JSONArray segments = (JSONArray) parser.parse(manifest);
+                        Iterator segmentIt = segments.iterator();
+                        while (segmentIt.hasNext()) {
+                            /*
+                             * Parse each JSON object in the list and create a list of Storage Objects
+                             */
+                            JSONObject segment = (JSONObject) segmentIt.next();
+                            String objectPath = segment.get("path").toString();
+                            String oldContainer = objectPath.substring(0,objectPath.indexOf('/', 1));
+                            String oldPath = objectPath.substring(objectPath.indexOf('/', 1)+1,objectPath.length());
+                            List<StorageObject> containerSegments = existingSegments.get(oldContainer);
+                            if (containerSegments == null) {
+                                containerSegments = new ArrayList<StorageObject>();
+                                existingSegments.put(oldContainer, containerSegments);
+                            }
+                            containerSegments.add(new StorageObject(oldPath));
+                        }
+                    } else {
+                        method.abort();
+                        throw new GenericException(response);
+                    }
+                }
+            } else {
+                /*
+                 * Not a large object, so return null
+                 */
+                return null;
+            }
+        } catch (NotFoundException e) {
+            /*
+             * Just means no object exists with the specified region, container and name
+             */
+            return null;
+        } catch (ParseException e) {
+            throw new GenericException("JSON parsing failed dealing with static large object", e);
+        } catch (URISyntaxException e) {
+            throw new GenericException("URI Building failed when downloading Static Large Object manifest", e);
+        }
+
+        return existingSegments;
+    }
+
+    /**
      * Store a file on the server, including metadata, with the contents coming from an input stream.  This allows you to
      * not know the entire length of your content when you start to write it.  Nor do you have to hold it entirely in memory
      * at the same time.
      *
+     * @param region      The name of the storage region
      * @param container   The name of the container
      * @param data        Any object that implements InputStream
      * @param contentType The MIME type of the file
      * @param name        The name of the file on the server
      * @param metadata    A map with the metadata as key names and values as the metadata values
-     * @return True if response code is 201
+     * @return the file ETAG if response code is 201
      * @throws GenericException Unexpected response
      */
     public String storeObject(Region region, String container, InputStream data, String contentType, String name, Map<String, String> metadata) throws IOException {
@@ -909,6 +1042,7 @@ public class Client {
     }
 
     /**
+     * @param region      The name of the storage region
      * @param container The name of the container
      * @param name      The name of the object
      * @param entity    The name of the request entity (make sure to set the Content-Type
@@ -1009,8 +1143,6 @@ public class Client {
             segmentFolder = (segmentFolder == null) ? ".file-segments" : segmentFolder;
             segmentContainer = (segmentContainer == null) ? container : segmentContainer;
 
-            Map<String, List<StorageObject>> oldSegmentsToRemove = null;
-
             /*
              * If we have chosen not to leave existing large object segments in place (default)
              * then we need to collect information about any existing file segments so that we can
@@ -1020,54 +1152,14 @@ public class Client {
              * because this constitutes an object update and the older file should remain available
              * until the new file can be downloaded.
              */
+            Map<String, List<StorageObject>> oldSegmentsToRemove = null;
             if (!leaveSegments){
-                ObjectMetadata existingMetadata;
-                String manifestDLO = null;
-                Boolean manifestSLO = Boolean.FALSE;
-
-                try {
-                    existingMetadata = getObjectMetaData(region, container, name);
-
-                    if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
-                        manifestDLO = existingMetadata.getMetaData().get(Constants.MANIFEST_HEADER);
-                    } else if (existingMetadata.getMetaData().containsKey(Constants.X_STATIC_LARGE_OBJECT)) {
-                        JSONParser parser = new JSONParser();
-                        String manifestSLOValue = existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT);
-                        manifestSLO = (Boolean) parser.parse(manifestSLOValue);
-                    }
-                } catch (NotFoundException e) {
-                    /*
-                     * Just means no object exists already, so continue
-                     */
-                } catch (ParseException e) {
-                    /*
-                     * X_STATIC_LARGE_OBJECT header existed but failed to parse.
-                     * If a static large object already exists this must be set to "true".
-                     * If we got here then the X_STATIC_LARGE_OBJECT header existed, but failed
-                     * to parse as a boolean, so fail upload as a precaution.
-                     */
-                    return null;
-                }
-
-                if (manifestDLO != null) {
-                    /*
-                     * We have found an existing dynamic large object, so use the prefix to get a list of
-                     * existing objects. If we're putting up a new dlo, make sure the segment prefixes are
-                     * different, then we can delete anything that's not in the new list if necessary.
-                     */
-                    String oldContainer = manifestDLO.substring(0,manifestDLO.indexOf('/', 1));
-                    String oldPath = manifestDLO.substring(manifestDLO.indexOf('/', 1),manifestDLO.length());
-                    oldSegmentsToRemove = new HashMap<String, List<StorageObject>>();
-                    oldSegmentsToRemove.put(oldContainer, listObjects(region, oldContainer, oldPath));
-                } else if (manifestSLO) {
-                    /*
-                     * We have found an existing static large object, so grab the manifest data that
-                     * details the existing segments - delete any later that we don't need any more
-                     */
-
-                }
+                oldSegmentsToRemove = listObjectSegments(region, container, name);
             }
 
+            /*
+             * Upload the new segments and manifest
+             */
             int segmentNumber = 1;
             long timeStamp = System.currentTimeMillis() / 1000L;
             String segmentBase = String.format("%s/%d/%d" , segmentFolder, timeStamp, objectSize);
@@ -1161,7 +1253,8 @@ public class Client {
                 future.get();
             } catch (InterruptedException ex) {
                 /*
-                 * The write was interrupted... delete the segments?
+                 * The write was interrupted... should we delete the segments?
+                 * For now we'll leave orphaned segments, but we should re-visit this later
                  */
             } catch (ExecutionException ex) {
                 /*
@@ -1186,35 +1279,13 @@ public class Client {
                  * Empty manifest with header detailing the shared prefix of object segments
                  */
                 long manifestTimeStamp = System.currentTimeMillis() / 1000L;
-                metadata.put("X-Object-Manifest", segmentBase);
-                metadata.put("x-object-meta-mtime", String.format("%s", manifestTimeStamp));
-                manifestEtag = storeObject(region, container, new ByteArrayInputStream(new byte[0]), entity.getContentType().getValue(), name, metadata);
+                metadata.put(Constants.X_OBJECT_META + "mtime", String.format("%s", manifestTimeStamp));
+                manifestEtag = createDLOManifestObject(region, container, entity.getContentType().getValue(), name, segmentBase, metadata);
             } else {
                 /*
                  * Manifest containing json list specifying details of the object segments.
                  */
-                URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
-                urlBuild.setParameter("multipart-manifest", "put");
-                URI url;
-                try {
-                    url = urlBuild.build();
-                    String manifestContent = manifestSLO.toString();
-                    InputStreamEntity manifestEntity = new InputStreamEntity(new ByteArrayInputStream(manifestContent.getBytes()), -1);
-                    manifestEntity.setChunked(true);
-                    manifestEntity.setContentType(entity.getContentType());
-                    HttpPut method = new HttpPut(url);
-                    method.setEntity(manifestEntity);
-                    method.setHeader("x-static-large-object", "true");
-                    Response response = this.execute(method, new DefaultResponseHandler());
-                    if(response.getStatusCode() == HttpStatus.SC_CREATED) {
-                        manifestEtag = response.getResponseHeader(HttpHeaders.ETAG).getValue();
-                    }
-                    else {
-                        throw new GenericException(response);
-                    }
-                } catch (URISyntaxException ex) {
-                    ex.printStackTrace();
-                }
+                manifestEtag = createSLOManifestObject(region, container, entity.getContentType().getValue(), name, manifestSLO.toString(), metadata);
             }
 
             /*
