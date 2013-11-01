@@ -103,7 +103,6 @@ public class SubInputStream extends FilterInputStream {
 
     @Override
     public void close() throws IOException {
-        System.out.println("close called");
         if (closeSource || endSourceReached) {
             super.close();
         }

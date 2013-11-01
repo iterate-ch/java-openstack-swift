@@ -943,11 +943,6 @@ public class Client {
             ObjectMetadata existingMetadata = getObjectMetaData(region, container, name);
 
             Map<String, String> metadataMap = existingMetadata.getMetaData();
-            System.out.println("Object Metadata for " + container + "/" + name);
-            for (String k : metadataMap.keySet()) {
-                System.out.println(k +": " + metadataMap.get(k));
-            }
-
             if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
                 /*
                  * We have found an existing dynamic large object, so use the prefix to get a list of
@@ -981,7 +976,6 @@ public class Client {
                              */
                             JSONObject segment = (JSONObject) segmentIt.next();
                             String objectPath = segment.get("name").toString();
-                            System.out.println(objectPath);
                             String oldContainer = objectPath.substring(0,objectPath.indexOf('/', 1));
                             String oldPath = objectPath.substring(objectPath.indexOf('/', 1)+1,objectPath.length());
                             List<StorageObject> containerSegments = existingSegments.get(oldContainer);
@@ -1210,12 +1204,10 @@ public class Client {
                 String segmentName = String.format("%s/%08d", segmentBase, segmentNumber);
 
                 String etag;
-                boolean error = false;
                 try {
                     etag = storeObject(region, segmentContainer, segmentStream, "application/octet-stream", segmentName, new HashMap<String,String>());
                 } catch (IOException ex) {
                     // Finished storing the object
-                    System.out.println("Caught IO Exception: " + ex.getMessage());
                     ex.printStackTrace();
                     throw ex;
                 }
@@ -1246,8 +1238,6 @@ public class Client {
                     finished = segmentStream.endSourceReached();
                 }
                 newSegmentsAdded.put(segmentContainer, newSegments);
-                System.out.println("JSON: " + manifestSLO.toString());
-                if (error) return "";
 
                 segmentStream.readMoreBytes(actualSegmentSize);
             }
@@ -1433,7 +1423,6 @@ public class Client {
             final String path = region.getStorageUrl(container, object).getRawPath();
             body.append(path.substring(region.getStorageUrl().getRawPath().length() + 1) + "\n");
         }
-        System.out.println("Mass delete body: " + body.toString());
         method.setEntity(new StringEntity(body.toString(), "UTF-8"));
         this.execute(method, new DefaultResponseHandler());
     }
