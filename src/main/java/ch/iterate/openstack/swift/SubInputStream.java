@@ -1,8 +1,8 @@
 package ch.iterate.openstack.swift;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.FilterInputStream;
 
 /**
  * A SubInputStream class that provides a shorter sub-stream from a given InputStream.
@@ -41,13 +41,16 @@ public class SubInputStream extends FilterInputStream {
     @Override
     public int read() throws IOException {
         // No more data to be read from this subStream
-        if (bytesRemaining == 0) return -1;
+        if(bytesRemaining == 0) {
+            return -1;
+        }
 
         int data = super.read();
-        if (data >= 0) {
+        if(data >= 0) {
             bytesRemaining--;
             bytesProduced++;
-        } else {
+        }
+        else {
             endSourceReached = true;
         }
         return data;
@@ -61,23 +64,27 @@ public class SubInputStream extends FilterInputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         // No more data to return from this subStream
-        if (bytesRemaining == 0) {
+        if(bytesRemaining == 0) {
             return -1;
         }
         // test off and len to ensure safe cast later
-        if (off < 0 || len < 0) throw (new IndexOutOfBoundsException());
+        if(off < 0 || len < 0) {
+            throw (new IndexOutOfBoundsException());
+        }
 
         int bytesRead;
-        if (bytesRemaining > len) {
+        if(bytesRemaining > len) {
             bytesRead = super.read(b, off, len);
-        } else {
+        }
+        else {
             // cast to int is ok for bytesRemaining because
             // (long) bytesRemaining < (int) len - off
             bytesRead = super.read(b, off, (int) bytesRemaining);
         }
-        if (bytesRead < 0) {
+        if(bytesRead < 0) {
             endSourceReached = true;
-        } else {
+        }
+        else {
             bytesRemaining -= bytesRead;
             bytesProduced += bytesRead;
         }
@@ -87,15 +94,18 @@ public class SubInputStream extends FilterInputStream {
     @Override
     public long skip(long n) throws IOException {
         // No reverse skips
-        if (n <= 0) return 0;
+        if(n <= 0) {
+            return 0;
+        }
 
         long bytesSkipped;
-        if (bytesRemaining > n) {
+        if(bytesRemaining > n) {
             bytesSkipped = super.skip(n);
-        } else {
+        }
+        else {
             bytesSkipped = super.skip(bytesRemaining);
         }
-        if (bytesSkipped > 0) {
+        if(bytesSkipped > 0) {
             bytesRemaining -= bytesSkipped;
         }
         return bytesSkipped;
@@ -103,7 +113,7 @@ public class SubInputStream extends FilterInputStream {
 
     @Override
     public void close() throws IOException {
-        if (closeSource || endSourceReached) {
+        if(closeSource || endSourceReached) {
             super.close();
         }
         bytesRemaining = 0;
