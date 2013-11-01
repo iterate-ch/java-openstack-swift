@@ -1029,7 +1029,7 @@ public class Client {
         StringBuilder body = new StringBuilder();
         for(String object : objects) {
             final String path = region.getStorageUrl(container, object).getRawPath();
-            body.append(path.substring(region.getStorageUrl().getRawPath().length()));
+            body.append(path.substring(region.getStorageUrl().getRawPath().length())).append('\n');
         }
         method.setEntity(new StringEntity(body.toString(), "UTF-8"));
         this.execute(method, new DefaultResponseHandler());
