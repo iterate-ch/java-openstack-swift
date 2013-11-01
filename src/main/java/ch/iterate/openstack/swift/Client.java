@@ -35,18 +35,30 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.ContainerExistsException;
@@ -54,7 +66,19 @@ import ch.iterate.openstack.swift.exception.ContainerNotEmptyException;
 import ch.iterate.openstack.swift.exception.ContainerNotFoundException;
 import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.exception.NotFoundException;
-import ch.iterate.openstack.swift.handler.*;
+import ch.iterate.openstack.swift.handler.AccountInfoHandler;
+import ch.iterate.openstack.swift.handler.Authentication10ResponseHandler;
+import ch.iterate.openstack.swift.handler.AuthenticationJson11ResponseHandler;
+import ch.iterate.openstack.swift.handler.AuthenticationJson20ResponseHandler;
+import ch.iterate.openstack.swift.handler.CdnContainerInfoHandler;
+import ch.iterate.openstack.swift.handler.CdnContainerInfoListHandler;
+import ch.iterate.openstack.swift.handler.ContainerInfoHandler;
+import ch.iterate.openstack.swift.handler.ContainerInfoResponseHandler;
+import ch.iterate.openstack.swift.handler.ContainerMetadataResponseHandler;
+import ch.iterate.openstack.swift.handler.ContainerResponseHandler;
+import ch.iterate.openstack.swift.handler.DefaultResponseHandler;
+import ch.iterate.openstack.swift.handler.ObjectMetadataResponseHandler;
+import ch.iterate.openstack.swift.handler.ObjectResponseHandler;
 import ch.iterate.openstack.swift.method.Authentication10UsernameKeyRequest;
 import ch.iterate.openstack.swift.method.Authentication11UsernameKeyRequest;
 import ch.iterate.openstack.swift.method.Authentication20UsernamePasswordRequest;
@@ -942,7 +966,6 @@ public class Client {
         try {
             ObjectMetadata existingMetadata = getObjectMetaData(region, container, name);
 
-            Map<String, String> metadataMap = existingMetadata.getMetaData();
             if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
                 /*
                  * We have found an existing dynamic large object, so use the prefix to get a list of
@@ -969,17 +992,16 @@ public class Client {
                     if(response.getStatusCode() == HttpStatus.SC_OK) {
                         String manifest = response.getResponseBodyAsString();
                         JSONArray segments = (JSONArray) parser.parse(manifest);
-                        Iterator segmentIt = segments.iterator();
-                        while (segmentIt.hasNext()) {
+                        for(Object o : segments) {
                             /*
                              * Parse each JSON object in the list and create a list of Storage Objects
                              */
-                            JSONObject segment = (JSONObject) segmentIt.next();
+                            JSONObject segment = (JSONObject) o;
                             String objectPath = segment.get("name").toString();
-                            String oldContainer = objectPath.substring(0,objectPath.indexOf('/', 1));
-                            String oldPath = objectPath.substring(objectPath.indexOf('/', 1)+1,objectPath.length());
+                            String oldContainer = objectPath.substring(0, objectPath.indexOf('/', 1));
+                            String oldPath = objectPath.substring(objectPath.indexOf('/', 1) + 1, objectPath.length());
                             List<StorageObject> containerSegments = existingSegments.get(oldContainer);
-                            if (containerSegments == null) {
+                            if(containerSegments == null) {
                                 containerSegments = new ArrayList<StorageObject>();
                                 existingSegments.put(oldContainer, containerSegments);
                             }
@@ -1270,7 +1292,7 @@ public class Client {
             /*
              * Create an appropriate manifest depending on our DLO/SLO choice
              */
-            String manifestEtag = null;
+            String manifestEtag;
             if (dynamicLargeObject) {
                 /*
                  * Empty manifest with header detailing the shared prefix of object segments
