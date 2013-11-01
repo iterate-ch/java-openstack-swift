@@ -942,6 +942,12 @@ public class Client {
         try {
             ObjectMetadata existingMetadata = getObjectMetaData(region, container, name);
 
+            Map<String, String> metadataMap = existingMetadata.getMetaData();
+            System.out.println("Object Metadata for " + container + "/" + name);
+            for (String k : metadataMap.keySet()) {
+                System.out.println(k +": " + metadataMap.get(k));
+            }
+
             if (existingMetadata.getMetaData().containsKey(Constants.MANIFEST_HEADER)) {
                 /*
                  * We have found an existing dynamic large object, so use the prefix to get a list of
@@ -957,9 +963,9 @@ public class Client {
                  * We have found an existing static large object, so grab the manifest data that
                  * details the existing segments - delete any later that we don't need any more
                  */
-                JSONParser parser = new JSONParser();
-                Boolean isSLO = (Boolean) parser.parse(existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT));
+                boolean isSLO = "true".equals(existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT).toLowerCase(Locale.ENGLISH));
                 if (isSLO) {
+                    JSONParser parser = new JSONParser();
                     URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
                     urlBuild.setParameter("multipart-manifest", "get");
                     URI url = urlBuild.build();
@@ -974,7 +980,8 @@ public class Client {
                              * Parse each JSON object in the list and create a list of Storage Objects
                              */
                             JSONObject segment = (JSONObject) segmentIt.next();
-                            String objectPath = segment.get("path").toString();
+                            String objectPath = segment.get("name").toString();
+                            System.out.println(objectPath);
                             String oldContainer = objectPath.substring(0,objectPath.indexOf('/', 1));
                             String oldPath = objectPath.substring(objectPath.indexOf('/', 1)+1,objectPath.length());
                             List<StorageObject> containerSegments = existingSegments.get(oldContainer);
@@ -1424,8 +1431,9 @@ public class Client {
         StringBuilder body = new StringBuilder();
         for(String object : objects) {
             final String path = region.getStorageUrl(container, object).getRawPath();
-            body.append(path.substring(region.getStorageUrl().getRawPath().length()));
+            body.append(path.substring(region.getStorageUrl().getRawPath().length() + 1) + "\n");
         }
+        System.out.println("Mass delete body: " + body.toString());
         method.setEntity(new StringEntity(body.toString(), "UTF-8"));
         this.execute(method, new DefaultResponseHandler());
     }

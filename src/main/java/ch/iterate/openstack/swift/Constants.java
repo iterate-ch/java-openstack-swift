@@ -111,9 +111,9 @@ public class Constants {
     public static final String X_CONTAINER_META = "X-Container-Meta-";
 
     public static final List<String> HTTP_HEADER_EDITABLE_NAMES = Arrays.asList(
-            MANIFEST_HEADER,
-            X_STATIC_LARGE_OBJECT,
-            X_PURGE_EMAIL,
+            MANIFEST_HEADER.toLowerCase(Locale.ENGLISH),
+            X_STATIC_LARGE_OBJECT.toLowerCase(Locale.ENGLISH),
+            X_PURGE_EMAIL.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_TYPE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_LANGUAGE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_ENCODING.toLowerCase(Locale.ENGLISH),
