@@ -10,5 +10,5 @@ Maven Dependency
 <dependency>
   <groupId>ch.iterate.openstack</groupId>
   <artifactId>swift</artifactId>
-  <version>2.0</version>
+  <version>2.1a</version>
 </dependency>
