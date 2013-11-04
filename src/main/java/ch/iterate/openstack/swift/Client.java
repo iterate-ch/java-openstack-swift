@@ -1007,7 +1007,12 @@ public class Client {
                                 containerSegments = new ArrayList<StorageObject>();
                                 existingSegments.put(segmentContainer, containerSegments);
                             }
-                            containerSegments.add(new StorageObject(segmentPath));
+                            final StorageObject object = new StorageObject(segmentPath);
+                            object.setSize(Long.valueOf(segment.get("bytes").toString()));
+                            object.setMd5sum(segment.get("hash").toString());
+                            object.setLastModified(segment.get("last_modified").toString());
+                            object.setMimeType(segment.get("content_type").toString());
+                            containerSegments.add(object);
                         }
                     }
                     else {
