@@ -974,9 +974,9 @@ public class Client {
                  * different, then we can delete anything that's not in the new list if necessary.
                  */
                 String manifestDLO = existingMetadata.getMetaData().get(Constants.MANIFEST_HEADER);
-                String oldContainer = manifestDLO.substring(0, manifestDLO.indexOf('/', 1));
-                String oldPath = manifestDLO.substring(manifestDLO.indexOf('/', 1), manifestDLO.length());
-                existingSegments.put(oldContainer, listObjects(region, oldContainer, oldPath));
+                String segmentContainer = manifestDLO.substring(1, manifestDLO.indexOf('/', 1));
+                String segmentPath = manifestDLO.substring(manifestDLO.indexOf('/', 1), manifestDLO.length());
+                existingSegments.put(segmentContainer, this.listObjects(region, segmentContainer, segmentPath));
             }
             else if(existingMetadata.getMetaData().containsKey(Constants.X_STATIC_LARGE_OBJECT)) {
                 /*
@@ -1000,14 +1000,14 @@ public class Client {
                              */
                             JSONObject segment = (JSONObject) o;
                             String objectPath = segment.get("name").toString();
-                            String oldContainer = objectPath.substring(0, objectPath.indexOf('/', 1));
-                            String oldPath = objectPath.substring(objectPath.indexOf('/', 1) + 1, objectPath.length());
-                            List<StorageObject> containerSegments = existingSegments.get(oldContainer);
+                            String segmentContainer = objectPath.substring(1, objectPath.indexOf('/', 1));
+                            String segmentPath = objectPath.substring(objectPath.indexOf('/', 1) + 1, objectPath.length());
+                            List<StorageObject> containerSegments = existingSegments.get(segmentContainer);
                             if(containerSegments == null) {
                                 containerSegments = new ArrayList<StorageObject>();
-                                existingSegments.put(oldContainer, containerSegments);
+                                existingSegments.put(segmentContainer, containerSegments);
                             }
-                            containerSegments.add(new StorageObject(oldPath));
+                            containerSegments.add(new StorageObject(segmentPath));
                         }
                     }
                     else {
