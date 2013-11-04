@@ -81,18 +81,10 @@ public class ObjectResponseHandler implements ResponseHandler<List<StorageObject
                     }
                     if(name != null) {
                         StorageObject obj = new StorageObject(name);
-                        if(eTag != null) {
-                            obj.setMd5sum(eTag);
-                        }
-                        if(mimeType != null) {
-                            obj.setMimeType(mimeType);
-                        }
-                        if(size >= 0) {
-                            obj.setSize(size);
-                        }
-                        if(lastModified != null) {
-                            obj.setLastModified(lastModified);
-                        }
+                        obj.setMd5sum(eTag);
+                        obj.setMimeType(mimeType);
+                        obj.setSize(size);
+                        obj.setLastModified(lastModified);
                         objectList.add(obj);
                     }
                 }

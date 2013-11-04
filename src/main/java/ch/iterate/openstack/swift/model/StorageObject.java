@@ -35,11 +35,11 @@ public class StorageObject {
         this.md5sum = md5sum;
     }
 
-    public long getSize() {
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(final long size) {
+    public void setSize(final Long size) {
         this.size = size;
     }
 
