@@ -55,7 +55,7 @@ public class AuthenticationJson11ResponseHandler implements ResponseHandler<Auth
                 Boolean v1Default = ((JSONObject) cloudFiles).containsKey("v1Default")
                         ? (Boolean) ((JSONObject) cloudFiles).get("v1Default")
                         : Boolean.FALSE;
-                regions.add(new Region(regionId, URI.create(publicUrl), URI.create(cdnUrl), v1Default));
+                regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl), v1Default));
             }
             return new AuthenticationResponse(response, token, regions);
         }
