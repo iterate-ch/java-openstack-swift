@@ -38,8 +38,12 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
             }
             JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(response.getEntity().getContent(), charset));
             JSONObject auth = (JSONObject) json.get("access");
+            JSONObject user = ((JSONObject) auth.get("user"));
+            String defaultRegion = null;
+            if(user.containsKey("RAX-AUTH:defaultRegion")) {
+                defaultRegion = user.get("RAX-AUTH:defaultRegion").toString();
+            }
             String token = ((JSONObject) auth.get("token")).get("id").toString();
-
             JSONArray serviceCatalogs = (JSONArray) auth.get("serviceCatalog");
             Set<Region> regions = new HashSet<Region>();
             Map<String, String> cdnUrls = new HashMap<String, String>();
@@ -65,7 +69,8 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
                         String regionId = ((JSONObject) endpoint).get("region").toString();
                         String publicUrl = ((JSONObject) endpoint).get("publicURL").toString();
                         String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
-                        regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl), false));
+                        regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
+                                regionId.equals(defaultRegion)));
                     }
                 }
             }
