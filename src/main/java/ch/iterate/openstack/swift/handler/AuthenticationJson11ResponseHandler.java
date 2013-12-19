@@ -8,6 +8,7 @@ import org.apache.http.protocol.HTTP;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,7 +37,13 @@ public class AuthenticationJson11ResponseHandler implements ResponseHandler<Auth
                     charset = contentType.getCharset();
                 }
             }
-            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(response.getEntity().getContent(), charset));
+            JSONObject json;
+            try {
+                json = (JSONObject) JSONValue.parseWithException(new InputStreamReader(response.getEntity().getContent(), charset));
+            }
+            catch(ParseException e) {
+                throw new GenericException(e.getMessage(), e);
+            }
             JSONObject auth = (JSONObject) json.get("auth");
             String token = ((JSONObject) auth.get("token")).get("id").toString();
 
