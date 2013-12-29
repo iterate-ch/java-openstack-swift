@@ -1,4 +1,4 @@
-package ch.iterate.openstack.swift;
+package ch.iterate.openstack.swift.io;
 
 import java.io.FilterInputStream;
 import java.io.IOException;

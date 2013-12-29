@@ -10,7 +10,8 @@ import org.apache.http.StatusLine;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
+
+import ch.iterate.openstack.swift.io.ContentLengthInputStream;
 
 public class Response {
     private HttpResponse response;
@@ -71,8 +72,8 @@ public class Response {
      * @return An input stream that will return the response body when read
      * @throws IOException If an error occurs reading the input stream
      */
-    public InputStream getResponseBodyAsStream() throws IOException {
-        return response.getEntity().getContent();
+    public ContentLengthInputStream getResponseBodyAsStream() throws IOException {
+        return new ContentLengthInputStream(response.getEntity().getContent(), response.getEntity().getContentLength());
     }
 
     /**
