@@ -133,15 +133,10 @@ import ch.iterate.openstack.swift.model.StorageObject;
  */
 public class Client {
 
-    private String username;
-    private String password;
-    private String tenantId;
-    private AuthVersion authVersion = AuthVersion.v10;
-    private URI authenticationURL;
-
-    private AuthenticationResponse authenticationResponse;
-
     private HttpClient client;
+
+    private AuthenticationRequest authenticationRequest;
+    private AuthenticationResponse authenticationResponse;
 
     /**
      * @param connectionTimeOut The connection timeout, in ms.
@@ -196,22 +191,13 @@ public class Client {
 
     /**
      * @param authVersion Version
-     * @param authUrl     Authentication endpoint of identity service
+     * @param authenticationURL     Authentication endpoint of identity service
      * @param username    User or access key
      * @param password    Password or secret key
      * @param tenantId    Tenant or null
      * @return Authentication response with supported regions and authentication token for subsequent requests
      */
-    public AuthenticationResponse authenticate(AuthVersion authVersion, URI authUrl, String username, String password, String tenantId) throws IOException {
-        this.authenticationURL = authUrl;
-        this.authVersion = authVersion;
-        this.username = username;
-        this.password = password;
-        this.tenantId = tenantId;
-        return this.authenticate();
-    }
-
-    protected AuthenticationResponse authenticate() throws IOException {
+    public AuthenticationResponse authenticate(AuthVersion authVersion, URI authenticationURL, String username, String password, String tenantId) throws IOException {
         switch(authVersion) {
             case v10:
             default:
@@ -237,6 +223,7 @@ public class Client {
 
     public AuthenticationResponse authenticate(AuthenticationRequest request,
                                                ResponseHandler<AuthenticationResponse> handler) throws IOException {
+        authenticationRequest = request;
         return authenticationResponse = client.execute(request, handler);
     }
 
@@ -373,7 +360,8 @@ public class Client {
             }
             catch(AuthorizationException e) {
                 method.abort();
-                authenticationResponse = this.authenticate();
+                // Re-authenticate with previous authentication request
+                authenticationResponse = this.authenticate(authenticationRequest);
                 method.reset();
                 // Add new auth token retrieved
                 method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
@@ -396,7 +384,8 @@ public class Client {
             }
             catch(AuthorizationException e) {
                 method.abort();
-                authenticationResponse = this.authenticate();
+                // Re-authenticate with previous authentication request
+                authenticationResponse = this.authenticate(authenticationRequest);
                 method.reset();
                 // Add new auth token retrieved
                 method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
