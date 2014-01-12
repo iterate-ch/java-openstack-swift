@@ -86,8 +86,6 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
         else if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
             throw new AuthorizationException(new Response(response));
         }
-        else {
-            throw new GenericException(new Response(response));
-        }
+        throw new GenericException(new Response(response));
     }
 }

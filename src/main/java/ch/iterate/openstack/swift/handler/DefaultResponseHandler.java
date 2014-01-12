@@ -27,6 +27,6 @@ public class DefaultResponseHandler implements ResponseHandler<Response> {
         else if(statusCode == HttpStatus.SC_UNAUTHORIZED) {
             throw new AuthorizationException(new Response(response));
         }
-        throw new GenericException("Unexpected response", response.getAllHeaders(), statusLine);
+        throw new GenericException(new Response(response));
     }
 }

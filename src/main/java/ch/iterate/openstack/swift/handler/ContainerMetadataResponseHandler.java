@@ -42,8 +42,6 @@ public class ContainerMetadataResponseHandler extends MetadataResponseHandler im
         else if(response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
             throw new AuthorizationException(new Response(response));
         }
-        else {
-            throw new GenericException(new Response(response));
-        }
+        throw new GenericException(new Response(response));
     }
 }

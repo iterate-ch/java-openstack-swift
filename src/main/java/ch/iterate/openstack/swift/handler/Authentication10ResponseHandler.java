@@ -28,9 +28,7 @@ public class Authentication10ResponseHandler implements ResponseHandler<Authenti
         else if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
             throw new AuthorizationException(new Response(response));
         }
-        else {
-            throw new GenericException(new Response(response));
-        }
+        throw new GenericException(new Response(response));
     }
 
     /**
