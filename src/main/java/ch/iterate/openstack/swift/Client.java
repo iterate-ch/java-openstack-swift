@@ -10,7 +10,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -20,20 +19,13 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -133,7 +125,7 @@ import ch.iterate.openstack.swift.model.StorageObject;
  */
 public class Client {
 
-    private HttpClient client;
+    private CloseableHttpClient client;
 
     private AuthenticationRequest authenticationRequest;
     private AuthenticationResponse authenticationResponse;
@@ -142,38 +134,23 @@ public class Client {
      * @param connectionTimeOut The connection timeout, in ms.
      */
     public Client(final int connectionTimeOut) {
-        this(new DefaultHttpClient() {
-            @Override
-            protected HttpParams createHttpParams() {
-                BasicHttpParams params = new BasicHttpParams();
-                HttpConnectionParams.setSoTimeout(params, connectionTimeOut);
-                return params;
-            }
-
-            @Override
-            protected ClientConnectionManager createClientConnectionManager() {
-                SchemeRegistry schemeRegistry = new SchemeRegistry();
-                schemeRegistry.register(
-                        new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
-                schemeRegistry.register(
-                        new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
-                return new PoolingClientConnectionManager(schemeRegistry);
-            }
-        });
+        this(HttpClients.custom().setDefaultSocketConfig(SocketConfig.custom()
+                .setSoTimeout(connectionTimeOut).build())
+                .build());
     }
 
     /**
      * @param client The HttpClient to talk to Swift
      */
-    public Client(HttpClient client) {
+    public Client(CloseableHttpClient client) {
         this.client = client;
     }
 
     /**
      * Release all connections
      */
-    public void disconnect() {
-        this.client.getConnectionManager().shutdown();
+    public void disconnect() throws IOException {
+        this.client.close();
     }
 
     public enum AuthVersion {
@@ -190,11 +167,11 @@ public class Client {
     }
 
     /**
-     * @param authVersion Version
-     * @param authenticationURL     Authentication endpoint of identity service
-     * @param username    User or access key
-     * @param password    Password or secret key
-     * @param tenantId    Tenant or null
+     * @param authVersion       Version
+     * @param authenticationURL Authentication endpoint of identity service
+     * @param username          User or access key
+     * @param password          Password or secret key
+     * @param tenantId          Tenant or null
      * @return Authentication response with supported regions and authentication token for subsequent requests
      */
     public AuthenticationResponse authenticate(AuthVersion authVersion, URI authenticationURL, String username, String password, String tenantId) throws IOException {
