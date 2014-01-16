@@ -26,7 +26,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.HTTP;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -210,14 +209,6 @@ public class Client {
 
     public Set<Region> getRegions() {
         return authenticationResponse.getRegions();
-    }
-
-    public void setUserAgent(String userAgent) {
-        client.getParams().setParameter(HTTP.USER_AGENT, userAgent);
-    }
-
-    public String getUserAgent() {
-        return client.getParams().getParameter(HTTP.USER_AGENT).toString();
     }
 
     /**
