@@ -1,14 +1,9 @@
 package ch.iterate.openstack.swift.handler;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.entity.ContentType;
 import org.apache.http.protocol.HTTP;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,10 +19,14 @@ import ch.iterate.openstack.swift.Response;
 import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.exception.GenericException;
 import ch.iterate.openstack.swift.model.Region;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;import com.google.gson.JsonParser;
 
 public class AuthenticationJson20ResponseHandler implements ResponseHandler<AuthenticationResponse> {
 
-    public AuthenticationResponse handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
+    public AuthenticationResponse handleResponse(final HttpResponse response) throws IOException {
         if(response.getStatusLine().getStatusCode() == 200 ||
                 response.getStatusLine().getStatusCode() == 203) {
             Charset charset = HTTP.DEF_CONTENT_CHARSET;
@@ -37,51 +36,50 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
                     charset = contentType.getCharset();
                 }
             }
-            JSONObject json;
             try {
-                json = (JSONObject) JSONValue.parseWithException(new InputStreamReader(response.getEntity().getContent(), charset));
-            }
-            catch(ParseException e) {
-                throw new GenericException(e.getMessage(), e);
-            }
-            JSONObject auth = (JSONObject) json.get("access");
-            JSONObject user = ((JSONObject) auth.get("user"));
-            String defaultRegion = null;
-            if(user.containsKey("RAX-AUTH:defaultRegion")) {
-                defaultRegion = user.get("RAX-AUTH:defaultRegion").toString();
-            }
-            String token = ((JSONObject) auth.get("token")).get("id").toString();
-            JSONArray serviceCatalogs = (JSONArray) auth.get("serviceCatalog");
-            Set<Region> regions = new HashSet<Region>();
-            Map<String, String> cdnUrls = new HashMap<String, String>();
-            for(Object serviceCatalog : serviceCatalogs) {
-                if(((JSONObject) serviceCatalog).get("type").equals("rax:object-cdn")) {
-                    for(Object endpoint : (JSONArray) ((JSONObject) serviceCatalog).get("endpoints")) {
-                        String regionId = ((JSONObject) endpoint).get("region").toString();
-                        String publicUrl = ((JSONObject) endpoint).get("publicURL").toString();
-                        cdnUrls.put(regionId, publicUrl);
+                final JsonParser parser = new JsonParser();
+                final JsonObject json = parser.parse(new InputStreamReader(response.getEntity().getContent(), charset)).getAsJsonObject();
+                final JsonObject auth = json.getAsJsonObject("access");
+                final JsonObject user = auth.getAsJsonObject("user");
+                String defaultRegion = null;
+                if(user.get("RAX-AUTH:defaultRegion") != null) {
+                    defaultRegion = user.get("RAX-AUTH:defaultRegion").getAsString();
+                }
+                final String token = auth.getAsJsonObject("token").get("id").getAsString();
+                final JsonArray serviceCatalogs = auth.getAsJsonArray("serviceCatalog");
+                final Set<Region> regions = new HashSet<Region>();
+                final Map<String, String> cdnUrls = new HashMap<String, String>();
+                for(JsonElement e : serviceCatalogs) {
+                    final JsonObject serviceCatalog = e.getAsJsonObject();
+                    if(serviceCatalog.get("type").getAsString().equals("rax:object-cdn")) {
+                        for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
+                            String regionId = endpoint.getAsJsonObject().get("region").getAsString();
+                            String publicUrl = endpoint.getAsJsonObject().get("publicURL").getAsString();
+                            cdnUrls.put(regionId, publicUrl);
+                        }
+                    }
+                    if(serviceCatalog.get("type").getAsString().equals("hpext:cdn")) {
+                        for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
+                            String regionId = endpoint.getAsJsonObject().get("region").getAsString();
+                            String publicUrl = endpoint.getAsJsonObject().get("publicURL").getAsString();
+                            cdnUrls.put(regionId, publicUrl);
+                        }
+                    }
+                    if(serviceCatalog.get("type").getAsString().equals("object-store")) {
+                        for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
+                            String regionId = endpoint.getAsJsonObject().get("region").getAsString();
+                            String publicUrl = endpoint.getAsJsonObject().get("publicURL").getAsString();
+                            String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
+                            regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
+                                    regionId.equals(defaultRegion)));
+                        }
                     }
                 }
-                if(((JSONObject) serviceCatalog).get("type").equals("hpext:cdn")) {
-                    for(Object endpoint : (JSONArray) ((JSONObject) serviceCatalog).get("endpoints")) {
-                        String regionId = ((JSONObject) endpoint).get("region").toString();
-                        String publicUrl = ((JSONObject) endpoint).get("publicURL").toString();
-                        cdnUrls.put(regionId, publicUrl);
-                    }
-                }
+                return new AuthenticationResponse(response, token, regions);
             }
-            for(Object serviceCatalog : serviceCatalogs) {
-                if(((JSONObject) serviceCatalog).get("type").equals("object-store")) {
-                    for(Object endpoint : (JSONArray) ((JSONObject) serviceCatalog).get("endpoints")) {
-                        String regionId = ((JSONObject) endpoint).get("region").toString();
-                        String publicUrl = ((JSONObject) endpoint).get("publicURL").toString();
-                        String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
-                        regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
-                                regionId.equals(defaultRegion)));
-                    }
-                }
+            catch(JsonParseException e) {
+                throw new IOException(e.getMessage(), e);
             }
-            return new AuthenticationResponse(response, token, regions);
         }
         else if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
             throw new AuthorizationException(new Response(response));

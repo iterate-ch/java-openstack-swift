@@ -26,10 +26,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -84,6 +80,11 @@ import ch.iterate.openstack.swift.model.ContainerMetadata;
 import ch.iterate.openstack.swift.model.ObjectMetadata;
 import ch.iterate.openstack.swift.model.Region;
 import ch.iterate.openstack.swift.model.StorageObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 /**
  * An OpenStack Swift client interface.  Here follows a basic example of logging in, creating a container and an
@@ -944,7 +945,7 @@ public class Client {
                  */
                 boolean isSLO = "true".equals(existingMetadata.getMetaData().get(Constants.X_STATIC_LARGE_OBJECT).toLowerCase(Locale.ENGLISH));
                 if(isSLO) {
-                    JSONParser parser = new JSONParser();
+                    final JsonParser parser = new JsonParser();
                     URIBuilder urlBuild = new URIBuilder(region.getStorageUrl(container, name));
                     urlBuild.setParameter("multipart-manifest", "get");
                     URI url = urlBuild.build();
@@ -952,13 +953,13 @@ public class Client {
                     Response response = this.execute(method);
                     if(response.getStatusCode() == HttpStatus.SC_OK) {
                         String manifest = response.getResponseBodyAsString();
-                        JSONArray segments = (JSONArray) parser.parse(manifest);
-                        for(Object o : segments) {
+                        JsonArray segments = parser.parse(manifest).getAsJsonArray();
+                        for(JsonElement o : segments) {
                             /*
                              * Parse each JSON object in the list and create a list of Storage Objects
                              */
-                            JSONObject segment = (JSONObject) o;
-                            String objectPath = segment.get("name").toString();
+                            JsonObject segment = o.getAsJsonObject();
+                            String objectPath = segment.get("name").getAsString();
                             String segmentContainer = objectPath.substring(1, objectPath.indexOf('/', 1));
                             String segmentPath = objectPath.substring(objectPath.indexOf('/', 1) + 1, objectPath.length());
                             List<StorageObject> containerSegments = existingSegments.get(segmentContainer);
@@ -967,10 +968,10 @@ public class Client {
                                 existingSegments.put(segmentContainer, containerSegments);
                             }
                             final StorageObject object = new StorageObject(segmentPath);
-                            object.setSize(Long.valueOf(segment.get("bytes").toString()));
-                            object.setMd5sum(segment.get("hash").toString());
-                            object.setLastModified(segment.get("last_modified").toString());
-                            object.setMimeType(segment.get("content_type").toString());
+                            object.setSize(Long.valueOf(segment.get("bytes").getAsString()));
+                            object.setMd5sum(segment.get("hash").getAsString());
+                            object.setLastModified(segment.get("last_modified").getAsString());
+                            object.setMimeType(segment.get("content_type").getAsString());
                             containerSegments.add(object);
                         }
                     }
@@ -993,11 +994,11 @@ public class Client {
              */
             return null;
         }
-        catch(ParseException e) {
-            throw new GenericException("JSON parsing failed dealing with static large object", e);
+        catch(JsonParseException e) {
+            throw new GenericException("JSON parsing failed reading static large object manifest", e);
         }
         catch(URISyntaxException e) {
-            throw new GenericException("URI Building failed when downloading Static Large Object manifest", e);
+            throw new GenericException("URI Building failed reading static large object manifest", e);
         }
 
         return existingSegments;
@@ -1187,7 +1188,7 @@ public class Client {
 
             Map<String, List<StorageObject>> newSegmentsAdded = new HashMap<String, List<StorageObject>>();
             List<StorageObject> newSegments = new LinkedList<StorageObject>();
-            JSONArray manifestSLO = new JSONArray();
+            JsonArray manifestSLO = new JsonArray();
             boolean finished = false;
 
             /*
@@ -1218,11 +1219,11 @@ public class Client {
                  *   path of segment
                  */
                 if(!dynamicLargeObject) {
-                    JSONObject segmentJSON = new JSONObject();
+                    JsonObject segmentJSON = new JsonObject();
 
-                    segmentJSON.put("path", segmentPath);
-                    segmentJSON.put("etag", etag);
-                    segmentJSON.put("size_bytes", bytesUploaded);
+                    segmentJSON.addProperty("path", segmentPath);
+                    segmentJSON.addProperty("etag", etag);
+                    segmentJSON.addProperty("size_bytes", bytesUploaded);
                     manifestSLO.add(segmentJSON);
 
                     newSegments.add(new StorageObject(segmentName));
