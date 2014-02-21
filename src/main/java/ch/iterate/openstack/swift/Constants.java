@@ -14,11 +14,11 @@ public class Constants {
     /**
      * HTTP Header token that identifies the username
      */
-    public static final String X_STORAGE_USER_DEFAULT = "x-auth-user";
+    public static final String X_STORAGE_USER_DEFAULT = "X-Auth-User";
     /**
      * HTTP header token that identifies the password
      */
-    public static final String X_STORAGE_PASS_DEFAULT = "x-auth-key";
+    public static final String X_STORAGE_PASS_DEFAULT = "X-Auth-Key";
     /**
      * HTTP header token that identifies the Storage URL after a successful user login
      */
