@@ -25,10 +25,11 @@
     </licenses>
     <developers>
         <developer>
-            <name>David Kocher</name>
             <id>iterate</id>
-            <email>post@iterate.ch</email>
+            <name>David Kocher</name>
+            <email>dkocher@iterate.ch</email>
             <organization>iterate GmbH</organization>
+            <organizationUrl>https://iterate.ch</organizationUrl>
         </developer>
     </developers>
     <properties>
@@ -152,6 +153,11 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>clirr-maven-plugin</artifactId>
+                <version>2.6.1</version>
+            </plugin>
         </plugins>
     </build>
     <profiles>
@@ -194,4 +200,13 @@
             </build>
         </profile>
     </profiles>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>clirr-maven-plugin</artifactId>
+                <version>2.6.1</version>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
