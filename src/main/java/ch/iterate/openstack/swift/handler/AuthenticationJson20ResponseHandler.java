@@ -22,7 +22,8 @@ import ch.iterate.openstack.swift.model.Region;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 public class AuthenticationJson20ResponseHandler implements ResponseHandler<AuthenticationResponse> {
 
@@ -65,6 +66,9 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
                             cdnUrls.put(regionId, publicUrl);
                         }
                     }
+                }
+                for(JsonElement e : serviceCatalogs) {
+                    final JsonObject serviceCatalog = e.getAsJsonObject();
                     if(serviceCatalog.get("type").getAsString().equals("object-store")) {
                         for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
                             String regionId = endpoint.getAsJsonObject().get("region").getAsString();
