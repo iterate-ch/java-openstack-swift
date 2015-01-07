@@ -103,6 +103,14 @@ public class Constants {
     public static final String X_STATIC_LARGE_OBJECT = "X-Static-Large-Object";
 
     public static final String X_PURGE_EMAIL = "X-Purge-Email";
+    /**
+     * Container ACLs to grant other users permission to read and/or write objects in specific containers
+     */
+    public static final String X_CONTAINER_READ = "X-Container-Read";
+    /**
+     * Container ACLs to grant other users permission to read and/or write objects in specific containers
+     */
+    public static final String X_CONTAINER_WRITE = "X-Container-Write";
 
     /**
      * Prefix Cloud Files expects on all Meta data headers on Objects *
@@ -114,6 +122,8 @@ public class Constants {
             MANIFEST_HEADER.toLowerCase(Locale.ENGLISH),
             X_STATIC_LARGE_OBJECT.toLowerCase(Locale.ENGLISH),
             X_PURGE_EMAIL.toLowerCase(Locale.ENGLISH),
+            X_CONTAINER_READ.toLowerCase(Locale.ENGLISH),
+            X_CONTAINER_WRITE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_TYPE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_LANGUAGE.toLowerCase(Locale.ENGLISH),
             HttpHeaders.CONTENT_ENCODING.toLowerCase(Locale.ENGLISH),
