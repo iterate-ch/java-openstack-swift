@@ -1482,7 +1482,7 @@ public class Client {
 
     public ContentLengthInputStream getObject(Region region, String container, String object, long offset, long length) throws IOException {
         HttpGet method = new HttpGet(region.getStorageUrl(container, object));
-        method.setHeader("Range", "bytes=" + offset + "-" + length);
+        method.setHeader("Range", "bytes=" + offset + "-" + offset + length);
         Response response = this.execute(method);
         if(response.getStatusCode() == HttpStatus.SC_PARTIAL_CONTENT) {
             return response.getResponseBodyAsStream();
