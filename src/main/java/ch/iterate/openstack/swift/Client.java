@@ -57,6 +57,7 @@ import ch.iterate.openstack.swift.handler.AccountInfoHandler;
 import ch.iterate.openstack.swift.handler.Authentication10ResponseHandler;
 import ch.iterate.openstack.swift.handler.AuthenticationJson11ResponseHandler;
 import ch.iterate.openstack.swift.handler.AuthenticationJson20ResponseHandler;
+import ch.iterate.openstack.swift.handler.AuthenticationJson3ResponseHandler;
 import ch.iterate.openstack.swift.handler.CdnContainerInfoHandler;
 import ch.iterate.openstack.swift.handler.CdnContainerInfoListHandler;
 import ch.iterate.openstack.swift.handler.ContainerInfoHandler;
@@ -71,6 +72,7 @@ import ch.iterate.openstack.swift.io.SubInputStream;
 import ch.iterate.openstack.swift.method.Authentication10UsernameKeyRequest;
 import ch.iterate.openstack.swift.method.Authentication11UsernameKeyRequest;
 import ch.iterate.openstack.swift.method.Authentication20UsernamePasswordRequest;
+import ch.iterate.openstack.swift.method.Authentication3UsernamePasswordProjectRequest;
 import ch.iterate.openstack.swift.method.AuthenticationRequest;
 import ch.iterate.openstack.swift.model.AccountInfo;
 import ch.iterate.openstack.swift.model.CDNContainer;
@@ -163,7 +165,8 @@ public class Client {
          * Legacy authentication. Service endpoint URLs are now capable of specifying a region.
          */
         v11,
-        v20
+        v20,
+        v3
     }
 
     /**
@@ -183,6 +186,8 @@ public class Client {
                 return this.authenticate(new Authentication11UsernameKeyRequest(authenticationURL, username, password));
             case v20:
                 return this.authenticate(new Authentication20UsernamePasswordRequest(authenticationURL, username, password, tenantId));
+            case v3:
+                return this.authenticate(new Authentication3UsernamePasswordProjectRequest(authenticationURL, username, password, tenantId));
         }
     }
 
@@ -195,6 +200,8 @@ public class Client {
                 return this.authenticate(request, new AuthenticationJson11ResponseHandler());
             case v20:
                 return this.authenticate(request, new AuthenticationJson20ResponseHandler());
+            case v3:
+                return this.authenticate(request, new AuthenticationJson3ResponseHandler());
         }
     }
 
