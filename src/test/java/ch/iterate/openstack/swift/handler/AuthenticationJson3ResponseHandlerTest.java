@@ -24,7 +24,7 @@ public class AuthenticationJson3ResponseHandlerTest {
     @Test
     public void testHandleResponse() throws Exception {
         final AuthenticationResponse response = new AuthenticationJson3ResponseHandler().handleResponse(new BasicHttpResponse(
-                new BasicStatusLine(new ProtocolVersion("http", 1, 1), 200, "OK")
+                new BasicStatusLine(new ProtocolVersion("http", 1, 1), 201, "OK")
         ) {
             @Override
             public HttpEntity getEntity() {
@@ -56,7 +56,7 @@ public class AuthenticationJson3ResponseHandlerTest {
     @Test
     public void testHandleResponseWithServices() throws Exception {
         final AuthenticationResponse response = new AuthenticationJson3ResponseHandler().handleResponse(new BasicHttpResponse(
-                new BasicStatusLine(new ProtocolVersion("http", 1, 1), 200, "OK")
+                new BasicStatusLine(new ProtocolVersion("http", 1, 1), 201, "OK")
         ) {
             @Override
             public HttpEntity getEntity() {
