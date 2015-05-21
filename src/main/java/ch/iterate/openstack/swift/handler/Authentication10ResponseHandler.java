@@ -2,6 +2,7 @@ package ch.iterate.openstack.swift.handler;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 
@@ -19,13 +20,13 @@ import ch.iterate.openstack.swift.model.Region;
 public class Authentication10ResponseHandler implements ResponseHandler<AuthenticationResponse> {
 
     public AuthenticationResponse handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
-        if(response.getStatusLine().getStatusCode() == 200 || response.getStatusLine().getStatusCode() == 203
-                || response.getStatusLine().getStatusCode() == 204) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             return new AuthenticationResponse(response, response.getFirstHeader(Constants.X_AUTH_TOKEN).getValue(),
                     Collections.singleton(new Region(null,
                             this.getStorageURL(response), this.getCDNManagementURL(response), true)));
         }
-        else if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
+        else if(response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED
+                || response.getStatusLine().getStatusCode() == HttpStatus.SC_FORBIDDEN) {
             throw new AuthorizationException(new Response(response));
         }
         throw new GenericException(new Response(response));

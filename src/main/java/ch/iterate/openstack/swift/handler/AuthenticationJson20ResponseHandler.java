@@ -1,6 +1,7 @@
 package ch.iterate.openstack.swift.handler;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.entity.ContentType;
 import org.apache.http.protocol.HTTP;
@@ -28,8 +29,7 @@ import com.google.gson.JsonParser;
 public class AuthenticationJson20ResponseHandler implements ResponseHandler<AuthenticationResponse> {
 
     public AuthenticationResponse handleResponse(final HttpResponse response) throws IOException {
-        if(response.getStatusLine().getStatusCode() == 200 ||
-                response.getStatusLine().getStatusCode() == 203) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             Charset charset = HTTP.DEF_CONTENT_CHARSET;
             ContentType contentType = ContentType.get(response.getEntity());
             if(contentType != null) {
@@ -85,7 +85,8 @@ public class AuthenticationJson20ResponseHandler implements ResponseHandler<Auth
                 throw new IOException(e.getMessage(), e);
             }
         }
-        else if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
+        else if(response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED
+                || response.getStatusLine().getStatusCode() == HttpStatus.SC_FORBIDDEN) {
             throw new AuthorizationException(new Response(response));
         }
         throw new GenericException(new Response(response));
