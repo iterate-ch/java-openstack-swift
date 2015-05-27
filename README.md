@@ -10,7 +10,7 @@ Maven Dependency
 <dependency>
   <groupId>ch.iterate.openstack</groupId>
   <artifactId>swift</artifactId>
-  <version>2.1</version>
+  <version>2.3</version>
 </dependency>
 ```
 
