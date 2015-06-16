@@ -91,6 +91,6 @@ public class Authentication3UsernamePasswordProjectRequest extends HttpPost impl
     }
 
     public Client.AuthVersion getVersion() {
-        return Client.AuthVersion.v20;
+        return Client.AuthVersion.v3;
     }
 }
