@@ -54,35 +54,49 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                     final Map<String, String> cdnUrls = new HashMap<String, String>();
                     for(JsonElement e : catalog) {
                         final JsonObject serviceCatalog = e.getAsJsonObject();
+                        // Describes the API implemented by the service. Required
                         if(serviceCatalog.get("type").getAsString().equals("rax:object-cdn")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
-                                if("public".equals(endpoint.getAsJsonObject().get("interface").getAsString())) {
-                                    String regionId = endpoint.getAsJsonObject().get("region").getAsString();
-                                    String publicUrl = endpoint.getAsJsonObject().get("url").getAsString();
-                                    cdnUrls.put(regionId, publicUrl);
+                                final JsonObject object = endpoint.getAsJsonObject();
+                                if("public".equals(object.get("interface").getAsString())) {
+                                    // Optional
+                                    if(object.get("region") != null) {
+                                        String regionId = object.get("region").getAsString();
+                                        String publicUrl = object.get("url").getAsString();
+                                        cdnUrls.put(regionId, publicUrl);
+                                    }
                                 }
                             }
                         }
                         if(serviceCatalog.get("type").getAsString().equals("hpext:cdn")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
-                                if("public".equals(endpoint.getAsJsonObject().get("interface").getAsString())) {
-                                    String regionId = endpoint.getAsJsonObject().get("region").getAsString();
-                                    String publicUrl = endpoint.getAsJsonObject().get("url").getAsString();
-                                    cdnUrls.put(regionId, publicUrl);
+                                final JsonObject object = endpoint.getAsJsonObject();
+                                if("public".equals(object.get("interface").getAsString())) {
+                                    // Optional
+                                    if(object.get("region") != null) {
+                                        String regionId = object.get("region").getAsString();
+                                        String publicUrl = object.get("url").getAsString();
+                                        cdnUrls.put(regionId, publicUrl);
+                                    }
                                 }
                             }
                         }
                     }
                     for(JsonElement e : catalog) {
                         final JsonObject serviceCatalog = e.getAsJsonObject();
+                        // Describes the API implemented by the service. Required
                         if(serviceCatalog.get("type").getAsString().equals("object-store")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
-                                if("public".equals(endpoint.getAsJsonObject().get("interface").getAsString())) {
-                                    String regionId = endpoint.getAsJsonObject().get("region").getAsString();
-                                    String publicUrl = endpoint.getAsJsonObject().get("url").getAsString();
-                                    String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
-                                    regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
-                                            regionId.equals(defaultRegion)));
+                                final JsonObject object = endpoint.getAsJsonObject();
+                                if("public".equals(object.get("interface").getAsString())) {
+                                    // Optional
+                                    if(object.get("region") != null) {
+                                        String regionId = object.get("region").getAsString();
+                                        String publicUrl = object.get("url").getAsString();
+                                        String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
+                                        regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
+                                                regionId.equals(defaultRegion)));
+                                    }
                                 }
                             }
                         }
