@@ -11,6 +11,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 
 import ch.iterate.openstack.swift.AuthenticationResponse;
+import ch.iterate.openstack.swift.exception.AuthorizationException;
 import ch.iterate.openstack.swift.model.Region;
 
 import static org.junit.Assert.assertEquals;
@@ -106,6 +107,35 @@ public class AuthenticationJson3ResponseHandlerTest {
         assertTrue(response.getRegions().contains(
                 new Region("my-region", URI.create("https://storage"), null, false)
         ));
+    }
 
+    @Test(expected = AuthorizationException.class)
+    public void testHandleErrorResponse() throws Exception {
+        final AuthenticationResponse response = new AuthenticationJson3ResponseHandler().handleResponse(new BasicHttpResponse(
+                new BasicStatusLine(new ProtocolVersion("http", 1, 1), 401, "Error")
+        ) {
+            @Override
+            public HttpEntity getEntity() {
+                return new StringEntity(
+                        "{\n" +
+                                "    \"error\": {\n" +
+                                "        \"code\": 401,\n" +
+                                "        \"identity\": {\n" +
+                                "            \"challenge-response\": {\n" +
+                                "                \"challenge\": \"What was the zip code of your birthplace?\",\n" +
+                                "                \"session_id\": \"123456\"\n" +
+                                "            },\n" +
+                                "            \"methods\": [\n" +
+                                "                \"challenge-response\"\n" +
+                                "            ]\n" +
+                                "        },\n" +
+                                "        \"message\": \"Additional authentications steps required.\",\n" +
+                                "        \"title\": \"Not Authorized\"\n" +
+                                "    }\n" +
+                                "}"
+                        , Charset.forName("UTF-8"));
+            }
+        });
+        assertTrue(response.getRegions().isEmpty());
     }
 }
