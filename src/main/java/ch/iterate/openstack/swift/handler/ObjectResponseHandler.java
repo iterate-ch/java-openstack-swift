@@ -4,7 +4,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
-import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -17,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 import ch.iterate.openstack.swift.Response;
 import ch.iterate.openstack.swift.exception.AuthorizationException;
@@ -25,7 +25,7 @@ import ch.iterate.openstack.swift.exception.NotFoundException;
 import ch.iterate.openstack.swift.model.StorageObject;
 
 public class ObjectResponseHandler implements ResponseHandler<List<StorageObject>> {
-    private static final Logger logger = Logger.getLogger(ObjectResponseHandler.class);
+    private static final Logger logger = Logger.getLogger(ObjectResponseHandler.class.getName());
 
     public List<StorageObject> handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
         if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
@@ -76,7 +76,7 @@ public class ObjectResponseHandler implements ResponseHandler<List<StorageObject
                             lastModified = data.getTextContent();
                         }
                         else {
-                            logger.warn("Unexpected tag:" + data.getNodeName());
+                            logger.warning("Unexpected tag:" + data.getNodeName());
                         }
                     }
                     if(name != null) {

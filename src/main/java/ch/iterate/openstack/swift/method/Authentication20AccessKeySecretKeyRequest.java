@@ -4,16 +4,17 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
-import org.apache.log4j.Logger;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import ch.iterate.openstack.swift.Client;
 import com.google.gson.JsonObject;
 
 public class Authentication20AccessKeySecretKeyRequest extends HttpPost implements AuthenticationRequest {
-    private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class);
+    private static final Logger logger = Logger.getLogger(Authentication11UsernameKeyRequest.class.getName());
 
     public Authentication20AccessKeySecretKeyRequest(URI uri, String accessKey, String secretKey, String tenantId) {
         super(uri);
@@ -32,7 +33,7 @@ public class Authentication20AccessKeySecretKeyRequest extends HttpPost implemen
             entity = new ByteArrayEntity(container.toString().getBytes("UTF-8"));
         }
         catch(UnsupportedEncodingException e) {
-            logger.error(e.getMessage(), e);
+            logger.log(Level.SEVERE, e.getMessage(), e);
         }
         this.setHeader(HttpHeaders.ACCEPT, "application/json");
         this.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
