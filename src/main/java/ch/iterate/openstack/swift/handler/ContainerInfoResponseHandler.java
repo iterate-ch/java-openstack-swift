@@ -4,7 +4,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
-import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -17,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 import ch.iterate.openstack.swift.Response;
 import ch.iterate.openstack.swift.exception.AuthorizationException;
@@ -26,7 +26,7 @@ import ch.iterate.openstack.swift.model.ContainerInfo;
 import ch.iterate.openstack.swift.model.Region;
 
 public class ContainerInfoResponseHandler implements ResponseHandler<List<ContainerInfo>> {
-    private static final Logger logger = Logger.getLogger(ContainerInfoResponseHandler.class);
+    private static final Logger logger = Logger.getLogger(ContainerInfoResponseHandler.class.getName());
 
     private Region region;
 
@@ -69,7 +69,7 @@ public class ContainerInfoResponseHandler implements ResponseHandler<List<Contai
                             count = Integer.parseInt(data.getTextContent());
                         }
                         else {
-                            logger.warn(String.format("Unexpected node name %s", data.getNodeName()));
+                            logger.warning(String.format("Unexpected node name %s", data.getNodeName()));
                         }
                     }
                     if(name != null) {
