@@ -37,9 +37,9 @@
         <source.encoding>UTF-8</source.encoding>
     </properties>
     <scm>
-        <connection>scm:git:git@github.com:dkocher/java-openstack-swift.git</connection>
-        <developerConnection>scm:git:git@github.com:dkocher/java-openstack-swift.git</developerConnection>
-        <url>git@github.com:dkocher/java-openstack-swift.git</url>
+        <url>https://github.com/iterate-ch/java-openstack-swift</url>
+        <connection>https://github.com/iterate-ch/java-openstack-swift</connection>
+        <developerConnection>scm:git:git@github.com:iterate-ch/java-openstack-swift.git</developerConnection>
     </scm>
     <dependencies>
         <dependency>
