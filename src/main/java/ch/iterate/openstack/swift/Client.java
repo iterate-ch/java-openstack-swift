@@ -1487,9 +1487,18 @@ public class Client {
         }
     }
 
+    public ContentLengthInputStream getObject(Region region, String container, String object, long offset) throws IOException {
+        return this.getObject(region, container, object, offset, -1L);
+    }
+
     public ContentLengthInputStream getObject(Region region, String container, String object, long offset, long length) throws IOException {
         HttpGet method = new HttpGet(region.getStorageUrl(container, object));
-        method.setHeader("Range", String.format("bytes=%d-%d", offset, offset + length));
+        if(length > 0) {
+            method.setHeader("Range", String.format("bytes=%d-%d", offset, offset + length));
+        }
+        else {
+            method.setHeader("Range", String.format("bytes=%d-", offset));
+        }
         Response response = this.execute(method);
         if(response.getStatusCode() == HttpStatus.SC_PARTIAL_CONTENT) {
             return response.getResponseBodyAsStream();
