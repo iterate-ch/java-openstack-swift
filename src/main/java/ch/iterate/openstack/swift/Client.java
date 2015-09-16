@@ -1494,10 +1494,10 @@ public class Client {
     public ContentLengthInputStream getObject(Region region, String container, String object, long offset, long length) throws IOException {
         HttpGet method = new HttpGet(region.getStorageUrl(container, object));
         if(length > 0) {
-            method.setHeader("Range", String.format("bytes=%d-%d", offset, offset + length));
+            method.setHeader(HttpHeaders.RANGE, String.format("bytes=%d-%d", offset, offset + length));
         }
         else {
-            method.setHeader("Range", String.format("bytes=%d-", offset));
+            method.setHeader(HttpHeaders.RANGE, String.format("bytes=%d-", offset));
         }
         Response response = this.execute(method);
         if(response.getStatusCode() == HttpStatus.SC_PARTIAL_CONTENT) {
