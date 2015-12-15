@@ -31,7 +31,7 @@ public class ContainerMetadataResponseHandler extends MetadataResponseHandler im
             for(Header h : response.getAllHeaders()) {
                 if(h.getName().startsWith(Constants.X_CONTAINER_META)
                         || Constants.HTTP_HEADER_EDITABLE_NAMES.contains(h.getName().toLowerCase(Locale.ENGLISH))) {
-                    metadata.addMetaData(h.getName(), decode(h.getValue()));
+                    metadata.addMetaData(h.getName(), h.getValue());
                 }
             }
             return metadata;
