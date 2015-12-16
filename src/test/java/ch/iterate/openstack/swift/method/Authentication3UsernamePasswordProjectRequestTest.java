@@ -20,7 +20,7 @@ public class Authentication3UsernamePasswordProjectRequestTest {
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         request.getEntity().writeTo(out);
-        assertEquals("{\"auth\":{\"identity\":{\"methods\":[\"password\"],\"password\":{\"user\":{\"domain\":{\"id\":\"default\"},\"name\":\"my-username\",\"password\":\"my-password\"}}},\"scope\":{\"project\":{\"domain\":{\"id\":\"default\"},\"name\":\"project-x\"}}}}", new String(out.toByteArray(), "UTF-8"));
+        assertEquals("{\"auth\":{\"identity\":{\"methods\":[\"password\"],\"password\":{\"user\":{\"domain\":{\"name\":\"default\"},\"name\":\"my-username\",\"password\":\"my-password\"}}},\"scope\":{\"project\":{\"domain\":{\"name\":\"default\"},\"name\":\"project-x\"}}}}", new String(out.toByteArray(), "UTF-8"));
     }
 
     @Test
@@ -31,6 +31,6 @@ public class Authentication3UsernamePasswordProjectRequestTest {
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         request.getEntity().writeTo(out);
-        assertEquals("{\"auth\":{\"identity\":{\"methods\":[\"password\"],\"password\":{\"user\":{\"domain\":{\"id\":\"default\"},\"name\":\"my-username\",\"password\":\"my-password\"}}}}}", new String(out.toByteArray(), "UTF-8"));
+        assertEquals("{\"auth\":{\"identity\":{\"methods\":[\"password\"],\"password\":{\"user\":{\"domain\":{\"name\":\"default\"},\"name\":\"my-username\",\"password\":\"my-password\"}}}}}", new String(out.toByteArray(), "UTF-8"));
     }
 }
