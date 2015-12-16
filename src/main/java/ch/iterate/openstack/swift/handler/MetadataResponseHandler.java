@@ -60,14 +60,4 @@ public abstract class MetadataResponseHandler {
         }
         return hdr.getValue();
     }
-
-    protected static String decode(String uri) {
-        URLCodec codec = new URLCodec();
-        try {
-            return codec.decode(uri);
-        }
-        catch(DecoderException ee) {
-            return uri;
-        }
-    }
 }
