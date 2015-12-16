@@ -25,7 +25,7 @@ import com.google.gson.JsonPrimitive;
              "password": {
                  "user": {
                      "domain": {
-                         "id": "default"
+                         "name": "default"
                      },
                      "name": "my-username",
                      "password": "my-password"
@@ -35,7 +35,7 @@ import com.google.gson.JsonPrimitive;
          "scope": {
              "project": {
                  "domain": {
-                     "id": "default"
+                     "name": "default"
                  },
                  "name": "project-x"
              }
@@ -61,7 +61,7 @@ public class Authentication3UsernamePasswordProjectRequest extends HttpPost impl
         jsonIdentity.add("password", jsonPassword);
         JsonObject jsonUser = new JsonObject();
         JsonObject jsonDomain = new JsonObject();
-        jsonDomain.addProperty("id", domain);
+        jsonDomain.addProperty("name", domain);
         jsonUser.add("domain", jsonDomain);
         jsonUser.addProperty("name", username);
         jsonUser.addProperty("password", secret);
