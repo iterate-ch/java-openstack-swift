@@ -1,5 +1,6 @@
 package ch.iterate.openstack.swift.handler;
 
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
@@ -42,7 +43,6 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                 final JsonObject json = parser.parse(new InputStreamReader(response.getEntity().getContent(), charset)).getAsJsonObject();
                 final JsonObject auth = json.getAsJsonObject("token");
                 final JsonObject user = auth.getAsJsonObject("user");
-                final String token = user.get("id").getAsString();
                 String defaultRegion = null;
                 if(auth.get("region") != null) {
                     // The geographic location of the service endpoint
@@ -102,7 +102,12 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                         }
                     }
                 }
-                return new AuthenticationResponse(response, token, regions);
+                final Header token = response.getFirstHeader("X-Subject-Token");
+                if(null == token) {
+                    // No such header in response
+                    throw new GenericException(new Response(response));
+                }
+                return new AuthenticationResponse(response, token.getValue(), regions);
             }
             catch(JsonParseException e) {
                 throw new IOException(e.getMessage(), e);
