@@ -105,7 +105,7 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                 final Header token = response.getFirstHeader("X-Subject-Token");
                 if(null == token) {
                     // No such header in response
-                    throw new GenericException(new Response(response));
+                    throw new GenericException("Missing X-Subject-Token header in response", response.getAllHeaders(), response.getStatusLine());
                 }
                 return new AuthenticationResponse(response, token.getValue(), regions);
             }

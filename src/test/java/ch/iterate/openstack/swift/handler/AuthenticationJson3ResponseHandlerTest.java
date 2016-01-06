@@ -3,6 +3,7 @@ package ch.iterate.openstack.swift.handler;
 import org.apache.http.HttpEntity;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.Test;
@@ -24,7 +25,7 @@ public class AuthenticationJson3ResponseHandlerTest {
 
     @Test
     public void testHandleResponse() throws Exception {
-        final AuthenticationResponse response = new AuthenticationJson3ResponseHandler().handleResponse(new BasicHttpResponse(
+        final BasicHttpResponse response = new BasicHttpResponse(
                 new BasicStatusLine(new ProtocolVersion("http", 1, 1), 201, "OK")
         ) {
             @Override
@@ -50,13 +51,15 @@ public class AuthenticationJson3ResponseHandlerTest {
                                 "}"
                         , Charset.forName("UTF-8"));
             }
-        });
-        assertEquals("0ca8f6", response.getAuthToken());
+        };
+        response.addHeader(new BasicHeader("X-Subject-Token", "t-1"));
+        final AuthenticationResponse auth = new AuthenticationJson3ResponseHandler().handleResponse(response);
+        assertEquals("t-1", auth.getAuthToken());
     }
 
     @Test
     public void testHandleResponseWithServices() throws Exception {
-        final AuthenticationResponse response = new AuthenticationJson3ResponseHandler().handleResponse(new BasicHttpResponse(
+        final BasicHttpResponse response = new BasicHttpResponse(
                 new BasicStatusLine(new ProtocolVersion("http", 1, 1), 201, "OK")
         ) {
             @Override
@@ -103,8 +106,10 @@ public class AuthenticationJson3ResponseHandlerTest {
                                 "}"
                         , Charset.forName("UTF-8"));
             }
-        });
-        assertTrue(response.getRegions().contains(
+        };
+        response.addHeader(new BasicHeader("X-Subject-Token", "t-1"));
+        final AuthenticationResponse auth = new AuthenticationJson3ResponseHandler().handleResponse(response);
+        assertTrue(auth.getRegions().contains(
                 new Region("my-region", URI.create("https://storage"), null, false)
         ));
     }
