@@ -12,6 +12,7 @@ import org.apache.http.util.EntityUtils;
 import java.io.IOException;
 
 import ch.iterate.openstack.swift.io.ContentLengthInputStream;
+import ch.iterate.openstack.swift.io.HttpMethodReleaseInputStream;
 
 public class Response {
     private HttpResponse response;
@@ -73,7 +74,7 @@ public class Response {
      * @throws IOException If an error occurs reading the input stream
      */
     public ContentLengthInputStream getResponseBodyAsStream() throws IOException {
-        return new ContentLengthInputStream(response.getEntity().getContent(), response.getEntity().getContentLength());
+        return new ContentLengthInputStream(new HttpMethodReleaseInputStream(response), response.getEntity().getContentLength());
     }
 
     /**
