@@ -1,6 +1,7 @@
 package ch.iterate.openstack.swift.io;
 
-import java.io.FilterInputStream;
+import org.apache.commons.io.input.ProxyInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -11,7 +12,7 @@ import java.io.InputStream;
  *
  * @author jjw
  */
-public class SubInputStream extends FilterInputStream {
+public class SubInputStream extends ProxyInputStream {
     private long bytesRemaining;
     private long bytesProduced;
     private boolean closeSource;

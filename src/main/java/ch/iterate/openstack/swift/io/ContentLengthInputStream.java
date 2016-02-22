@@ -1,9 +1,10 @@
 package ch.iterate.openstack.swift.io;
 
-import java.io.FilterInputStream;
+import org.apache.commons.io.input.ProxyInputStream;
+
 import java.io.InputStream;
 
-public class ContentLengthInputStream extends FilterInputStream {
+public class ContentLengthInputStream extends ProxyInputStream {
 
     private Long length;
 
