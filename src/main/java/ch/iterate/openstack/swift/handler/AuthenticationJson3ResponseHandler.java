@@ -33,10 +33,8 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
         if(response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
             Charset charset = HTTP.DEF_CONTENT_CHARSET;
             ContentType contentType = ContentType.get(response.getEntity());
-            if(contentType != null) {
-                if(contentType.getCharset() != null) {
-                    charset = contentType.getCharset();
-                }
+            if(contentType != null && contentType.getCharset() != null) {
+            	charset = contentType.getCharset();
             }
             try {
                 final JsonParser parser = new JsonParser();
@@ -58,26 +56,22 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                         if(serviceCatalog.get("type").getAsString().equals("rax:object-cdn")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
                                 final JsonObject object = endpoint.getAsJsonObject();
-                                if("public".equals(object.get("interface").getAsString())) {
-                                    // Optional
-                                    if(object.get("region") != null) {
-                                        String regionId = object.get("region").getAsString();
-                                        String publicUrl = object.get("url").getAsString();
-                                        cdnUrls.put(regionId, publicUrl);
-                                    }
+                                if("public".equals(object.get("interface").getAsString()) && object.get("region") != null) {
+                                	// Optional
+                                	String regionId = object.get("region").getAsString();
+                                	String publicUrl = object.get("url").getAsString();
+                                	cdnUrls.put(regionId, publicUrl);
                                 }
                             }
                         }
                         if(serviceCatalog.get("type").getAsString().equals("hpext:cdn")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
                                 final JsonObject object = endpoint.getAsJsonObject();
-                                if("public".equals(object.get("interface").getAsString())) {
-                                    // Optional
-                                    if(object.get("region") != null) {
-                                        String regionId = object.get("region").getAsString();
-                                        String publicUrl = object.get("url").getAsString();
-                                        cdnUrls.put(regionId, publicUrl);
-                                    }
+                                if("public".equals(object.get("interface").getAsString()) && object.get("region") != null) {
+                                	// Optional
+                                	String regionId = object.get("region").getAsString();
+                                	String publicUrl = object.get("url").getAsString();
+                                	cdnUrls.put(regionId, publicUrl);
                                 }
                             }
                         }
@@ -88,15 +82,13 @@ public class AuthenticationJson3ResponseHandler implements ResponseHandler<Authe
                         if(serviceCatalog.get("type").getAsString().equals("object-store")) {
                             for(JsonElement endpoint : serviceCatalog.getAsJsonArray("endpoints")) {
                                 final JsonObject object = endpoint.getAsJsonObject();
-                                if("public".equals(object.get("interface").getAsString())) {
-                                    // Optional
-                                    if(object.get("region") != null) {
-                                        String regionId = object.get("region").getAsString();
-                                        String publicUrl = object.get("url").getAsString();
-                                        String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
-                                        regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
-                                                regionId.equals(defaultRegion)));
-                                    }
+                                if("public".equals(object.get("interface").getAsString()) && object.get("region") != null) {
+                                	// Optional
+                                	String regionId = object.get("region").getAsString();
+                                	String publicUrl = object.get("url").getAsString();
+                                	String cdnUrl = cdnUrls.containsKey(regionId) ? cdnUrls.get(regionId) : null;
+                                	regions.add(new Region(regionId, URI.create(publicUrl), cdnUrl == null ? null : URI.create(cdnUrl),
+                                			regionId.equals(defaultRegion)));
                                 }
                             }
                         }
