@@ -51,7 +51,7 @@ public class Region {
     }
 
     public URI getStorageUrl(String container, String object) {
-        return URI.create(this.getStorageUrl() + "/" + encode(container) + "/" + encode(object));
+        return URI.create(this.getStorageUrl() + "/" + encode(container) + "/" + encode(object, true));
     }
 
     public URI getStorageUrl(String container, String object, List<NameValuePair> parameters) {
