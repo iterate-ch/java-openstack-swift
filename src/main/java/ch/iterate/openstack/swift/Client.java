@@ -328,9 +328,13 @@ public class Client {
         return this.execute(method, new ContainerResponseHandler(region));
     }
 
+    protected void authorize(final HttpRequestBase method) {
+        method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
+    }
+
     private Response execute(final HttpRequestBase method) throws IOException {
         try {
-            method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
+            this.authorize(method);
             try {
                 return new DefaultResponseHandler().handleResponse(client.execute(method));
             }
@@ -340,7 +344,7 @@ public class Client {
                 authenticationResponse = this.authenticate(authenticationRequest);
                 method.reset();
                 // Add new auth token retrieved
-                method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
+                this.authorize(method);
                 // Retry
                 return new DefaultResponseHandler().handleResponse(client.execute(method));
             }
@@ -354,7 +358,7 @@ public class Client {
 
     private <T> T execute(final HttpRequestBase method, ResponseHandler<T> handler) throws IOException {
         try {
-            method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
+            this.authorize(method);
             try {
                 return client.execute(method, handler);
             }
@@ -364,7 +368,7 @@ public class Client {
                 authenticationResponse = this.authenticate(authenticationRequest);
                 method.reset();
                 // Add new auth token retrieved
-                method.setHeader(Constants.X_AUTH_TOKEN, authenticationResponse.getAuthToken());
+                this.authorize(method);
                 // Retry
                 return client.execute(method, handler);
             }
