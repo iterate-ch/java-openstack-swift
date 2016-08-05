@@ -20,7 +20,8 @@ import ch.iterate.openstack.swift.model.Region;
 public class Authentication10ResponseHandler implements ResponseHandler<AuthenticationResponse> {
 
     public AuthenticationResponse handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
-        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+        if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK
+           || response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
             return new AuthenticationResponse(response, response.getFirstHeader(Constants.X_AUTH_TOKEN).getValue(),
                     Collections.singleton(new Region(null,
                             this.getStorageURL(response), this.getCDNManagementURL(response), true)));
