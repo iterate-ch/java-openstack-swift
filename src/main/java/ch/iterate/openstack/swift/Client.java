@@ -148,6 +148,10 @@ public class Client {
         this.client = client;
     }
 
+    public CloseableHttpClient getClient() {
+        return client;
+    }
+
     /**
      * Release all connections
      */
