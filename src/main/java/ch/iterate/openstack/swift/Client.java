@@ -1303,24 +1303,22 @@ public class Client {
             /*
              * Delete stale segments of overwritten large object if requested.
              */
-            if(!leaveSegments) {
                 /*
                  * Before deleting old segments, remove any objects from the delete list
                  * that are also part of a new static large object that were updated during the upload.
                  */
-                if(!(oldSegmentsToRemove == null)) {
-                    for(String c : oldSegmentsToRemove.keySet()) {
-                        List<StorageObject> rmv = oldSegmentsToRemove.get(c);
-                        if(newSegmentsAdded.containsKey(c)) {
-                            rmv.removeAll(newSegmentsAdded.get(c));
-                        }
-                        List<String> rmvNames = new LinkedList<String>();
-                        for(StorageObject s : rmv) {
-                            rmvNames.add(s.getName());
-                        }
-                        deleteObjects(region, c, rmvNames);
-                    }
-                }
+            if(!leaveSegments && !(oldSegmentsToRemove == null)) {
+            	for(String c : oldSegmentsToRemove.keySet()) {
+            		List<StorageObject> rmv = oldSegmentsToRemove.get(c);
+            		if(newSegmentsAdded.containsKey(c)) {
+            			rmv.removeAll(newSegmentsAdded.get(c));
+            		}
+            		List<String> rmvNames = new LinkedList<String>();
+            		for(StorageObject s : rmv) {
+            			rmvNames.add(s.getName());
+            		}
+            		deleteObjects(region, c, rmvNames);
+            	}
             }
 
             return manifestEtag;

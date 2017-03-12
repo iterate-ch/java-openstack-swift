@@ -31,10 +31,8 @@ public class AuthenticationJson11ResponseHandler implements ResponseHandler<Auth
         if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
             Charset charset = HTTP.DEF_CONTENT_CHARSET;
             ContentType contentType = ContentType.get(response.getEntity());
-            if(contentType != null) {
-                if(contentType.getCharset() != null) {
-                    charset = contentType.getCharset();
-                }
+            if(contentType != null && contentType.getCharset() != null) {
+            	charset = contentType.getCharset();
             }
             try {
                 final JsonParser parser = new JsonParser();
