@@ -67,7 +67,6 @@ import ch.iterate.openstack.swift.handler.ContainerResponseHandler;
 import ch.iterate.openstack.swift.handler.DefaultResponseHandler;
 import ch.iterate.openstack.swift.handler.ObjectMetadataResponseHandler;
 import ch.iterate.openstack.swift.handler.ObjectResponseHandler;
-import ch.iterate.openstack.swift.io.ContentLengthInputStream;
 import ch.iterate.openstack.swift.io.SubInputStream;
 import ch.iterate.openstack.swift.method.Authentication10UsernameKeyRequest;
 import ch.iterate.openstack.swift.method.Authentication11UsernameKeyRequest;
@@ -1479,11 +1478,11 @@ public class Client {
      * @return An input stream that will give the objects content when read from.
      * @throws GenericException Unexpected response
      */
-    public ContentLengthInputStream getObject(Region region, String container, String object) throws IOException {
+    public Response getObject(Region region, String container, String object) throws IOException {
         HttpGet method = new HttpGet(region.getStorageUrl(container, object));
         Response response = this.execute(method);
         if(response.getStatusCode() == HttpStatus.SC_OK) {
-            return response.getResponseBodyAsStream();
+            return response;
         }
         else if(response.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
             method.abort();
@@ -1495,11 +1494,11 @@ public class Client {
         }
     }
 
-    public ContentLengthInputStream getObject(Region region, String container, String object, long offset) throws IOException {
+    public Response getObject(Region region, String container, String object, long offset) throws IOException {
         return this.getObject(region, container, object, offset, -1L);
     }
 
-    public ContentLengthInputStream getObject(Region region, String container, String object, long offset, long length) throws IOException {
+    public Response getObject(Region region, String container, String object, long offset, long length) throws IOException {
         HttpGet method = new HttpGet(region.getStorageUrl(container, object));
         if(length > 0) {
             method.setHeader(HttpHeaders.RANGE, String.format("bytes=%d-%d", offset, offset + length));
@@ -1509,7 +1508,7 @@ public class Client {
         }
         Response response = this.execute(method);
         if(response.getStatusCode() == HttpStatus.SC_PARTIAL_CONTENT) {
-            return response.getResponseBodyAsStream();
+            return response;
         }
         else if(response.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
             method.abort();

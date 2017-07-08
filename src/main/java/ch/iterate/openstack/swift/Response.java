@@ -57,6 +57,10 @@ public class Response {
         return response.getStatusLine().getReasonPhrase();
     }
 
+    public HttpResponse getResponse() {
+        return response;
+    }
+
     /**
      * Returns the response body as text
      *
