@@ -1391,7 +1391,11 @@ public class Client {
     public String copyObject(Region region, String sourceContainer,
                              String sourceObjName, String destContainer, String destObjName)
             throws IOException {
-        HttpPut method = new HttpPut(region.getStorageUrl(destContainer, destObjName));
+
+        final LinkedList<NameValuePair> parameters = new LinkedList<NameValuePair>();
+        parameters.add(new BasicNameValuePair("multipart-manifest", "get"));
+
+        HttpPut method = new HttpPut(region.getStorageUrl(destContainer, destObjName, parameters));
         method.setHeader(Constants.X_COPY_FROM, encode(sourceContainer) + "/" + encode(sourceObjName));
         Response response = this.execute(method, new DefaultResponseHandler());
         if(response.getStatusCode() == HttpStatus.SC_CREATED) {
