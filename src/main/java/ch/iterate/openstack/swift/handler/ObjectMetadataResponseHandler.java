@@ -26,7 +26,7 @@ public class ObjectMetadataResponseHandler extends MetadataResponseHandler imple
                     this.getContentType(response),
                     this.getContentLength(response),
                     this.getETag(response),
-                    this.getLastModified(response));
+                    this.getTimestamp(response));
 
             for(Header h : response.getAllHeaders()) {
                 if(h.getName().startsWith(Constants.X_OBJECT_META)

@@ -36,6 +36,19 @@ public abstract class MetadataResponseHandler {
     }
 
     /**
+     * The X-Timestamp header
+     *
+     * @return The X-Timestamp header
+     */
+    protected String getTimestamp(final HttpResponse response) {
+        Header hdr = response.getFirstHeader("X-Timestamp");
+        if(null == hdr) {
+            return null;
+        }
+        return hdr.getValue();
+    }
+
+    /**
      * Get the content type
      *
      * @return The content type (e.g., MIME type) of the response
