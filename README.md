@@ -1,6 +1,7 @@
 OpenStack Swift Client
 =====
-[![Build Status](https://travis-ci.org/iterate-ch/java-openstack-swift.svg?branch=master)](https://travis-ci.org/iterate-ch/java-openstack-swift)
+
+[![Build](https://github.com/iterate-ch/java-openstack-swift/actions/workflows/build.yml/badge.svg)](https://github.com/iterate-ch/java-openstack-swift/actions/workflows/build.yml)
 
 Fork of the Rackspace Cloudfiles project heavely refactored with support for Keystone and legacy authentication.
 
