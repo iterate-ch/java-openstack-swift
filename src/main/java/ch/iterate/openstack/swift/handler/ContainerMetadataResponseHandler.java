@@ -28,8 +28,9 @@ public class ContainerMetadataResponseHandler extends MetadataResponseHandler im
                     this.getETag(response),
                     this.getLastModified(response));
 
+            // Header names are case-insensitive (RFC 9110) and proxies may send them in lower case
             for(Header h : response.getAllHeaders()) {
-                if(h.getName().startsWith(Constants.X_CONTAINER_META)
+                if(h.getName().regionMatches(true, 0, Constants.X_CONTAINER_META, 0, Constants.X_CONTAINER_META.length())
                         || Constants.HTTP_HEADER_EDITABLE_NAMES.contains(h.getName().toLowerCase(Locale.ENGLISH))) {
                     metadata.addMetaData(h.getName(), h.getValue());
                 }
