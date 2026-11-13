@@ -868,7 +868,7 @@ public class Client {
         ByteArrayEntity entity = new ByteArrayEntity(arr);
         entity.setContentType(contentType);
         method.setEntity(entity);
-        for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+        for(Map.Entry<String, String> key : renameObjectMetadata(metadata).entrySet()) {
             method.setHeader(key.getKey(), key.getValue());
         }
         Response response = this.execute(method, new DefaultResponseHandler());
@@ -908,7 +908,7 @@ public class Client {
             manifestEntity.setContentType(contentType);
             HttpPut method = new HttpPut(url);
             method.setEntity(manifestEntity);
-            for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+            for(Map.Entry<String, String> key : renameObjectMetadata(metadata).entrySet()) {
                 method.setHeader(key.getKey(), key.getValue());
             }
             method.setHeader(Constants.X_STATIC_LARGE_OBJECT, "true");
@@ -1038,7 +1038,7 @@ public class Client {
         entity.setChunked(true);
         entity.setContentType(contentType);
         method.setEntity(entity);
-        for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+        for(Map.Entry<String, String> key : renameObjectMetadata(metadata).entrySet()) {
             method.setHeader(key.getKey(), key.getValue());
         }
         Response response = this.execute(method, new DefaultResponseHandler());
@@ -1067,7 +1067,7 @@ public class Client {
             method.setHeader(HttpHeaders.ETAG, md5sum);
         }
         method.setHeader(entity.getContentType());
-        for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+        for(Map.Entry<String, String> key : renameObjectMetadata(metadata).entrySet()) {
             method.setHeader(key.getKey(), key.getValue());
         }
         Response response = this.execute(method, new DefaultResponseHandler());
@@ -1340,18 +1340,19 @@ public class Client {
         return storeObject(region, container, name, entity, metadata, md5sum, objectSize, null, null, null, null, null);
     }
 
-    private Map<String, String> renameContainerMetadata(Map<String, String> metadata) {
-        return this.renameMetadata(metadata, Constants.X_CONTAINER_META);
+    static Map<String, String> renameContainerMetadata(Map<String, String> metadata) {
+        return renameMetadata(metadata, Constants.X_CONTAINER_META);
     }
 
-    private Map<String, String> renameObjectMetadata(Map<String, String> metadata) {
-        return this.renameMetadata(metadata, Constants.X_OBJECT_META);
+    static Map<String, String> renameObjectMetadata(Map<String, String> metadata) {
+        return renameMetadata(metadata, Constants.X_OBJECT_META);
     }
 
-    private Map<String, String> renameMetadata(Map<String, String> metadata, String prefix) {
+    private static Map<String, String> renameMetadata(Map<String, String> metadata, String prefix) {
         final Map<String, String> converted = new HashMap<String, String>(metadata.size());
         for(Map.Entry<String, String> entry : metadata.entrySet()) {
-            if(entry.getKey().startsWith(prefix)) {
+            // Header names are case-insensitive, so keys read back from lower-case response headers are already prefixed
+            if(entry.getKey().regionMatches(true, 0, prefix, 0, prefix.length())) {
                 converted.put(entry.getKey(), entry.getValue());
             }
             else {
@@ -1539,7 +1540,7 @@ public class Client {
         if(manifest != null) {
             method.setHeader(Constants.MANIFEST_HEADER, manifest);
         }
-        for(Map.Entry<String, String> key : this.renameObjectMetadata(metadata).entrySet()) {
+        for(Map.Entry<String, String> key : renameObjectMetadata(metadata).entrySet()) {
             method.setHeader(key.getKey(), key.getValue());
         }
         this.execute(method, new DefaultResponseHandler());
@@ -1548,7 +1549,7 @@ public class Client {
     public void updateContainerMetadata(Region region, String container,
                                         Map<String, String> metadata) throws IOException {
         HttpPost method = new HttpPost(region.getStorageUrl(container));
-        for(Map.Entry<String, String> key : this.renameContainerMetadata(metadata).entrySet()) {
+        for(Map.Entry<String, String> key : renameContainerMetadata(metadata).entrySet()) {
             method.setHeader(key.getKey(), key.getValue());
         }
         this.execute(method, new DefaultResponseHandler());
