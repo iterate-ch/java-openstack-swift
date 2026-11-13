@@ -4,15 +4,18 @@
 
 package ch.iterate.openstack.swift.model;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class MetaData {
     protected String mimeType;
     protected String contentLength;
     protected String eTag;
     protected String lastModified;
-    protected Map<String, String> metaData = new HashMap<String, String>();
+    /**
+     * Keys are header names, compared case-insensitive as servers and proxies may send them in any case
+     */
+    protected Map<String, String> metaData = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
     public MetaData(String mimeType, String lastModified, String contentLength, String eTag) {
         this.mimeType = mimeType;
@@ -28,7 +31,10 @@ public class MetaData {
      * @param metaData The new metadata
      */
     public void setMetaData(Map<String, String> metaData) {
-        this.metaData = metaData;
+        this.metaData = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+        if(metaData != null) {
+            this.metaData.putAll(metaData);
+        }
     }
 
     public void addMetaData(String key, String value) {
