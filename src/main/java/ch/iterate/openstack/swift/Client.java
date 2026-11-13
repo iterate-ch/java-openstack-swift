@@ -685,11 +685,7 @@ public class Client {
      * @return The CDN Url of the container
      * @throws GenericException Unexpected response
      */
-    /*
-     * @param referrerAcl Unused for now
-     * @param userAgentACL Unused for now
-     */
-    private String cdnUpdateContainer(Region region, String name, int ttl, boolean enabled, String referrerAcl, String userAgentACL, boolean retainLogs)
+    public String cdnUpdateContainer(Region region, String name, int ttl, boolean enabled, String referrerAcl, String userAgentACL, boolean retainLogs)
             throws IOException {
         HttpPost method = new HttpPost(region.getCDNManagementUrl(name));
         if(ttl > 0) {
